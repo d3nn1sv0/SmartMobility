@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SmartMobility.Models.Enums;
 
 namespace SmartMobility.Models.Entities;
 
@@ -15,6 +16,8 @@ public class User
 
     [MaxLength(100)]
     public string? Name { get; set; }
+
+    public UserRole Role { get; set; } = UserRole.User;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

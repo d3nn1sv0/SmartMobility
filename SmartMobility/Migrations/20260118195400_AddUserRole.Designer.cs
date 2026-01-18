@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartMobility.Data;
 
@@ -10,9 +11,11 @@ using SmartMobility.Data;
 namespace SmartMobility.Migrations
 {
     [DbContext(typeof(SmartMobilityDbContext))]
-    partial class SmartMobilityDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260118195400_AddUserRole")]
+    partial class AddUserRole
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.1");
@@ -76,6 +79,51 @@ namespace SmartMobility.Migrations
                     b.HasIndex("Timestamp");
 
                     b.ToTable("BusPositions");
+                });
+
+            modelBuilder.Entity("SmartMobility.Models.Entities.DeviceToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BusId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CurrentConnectionId")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeviceName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusId");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("DeviceTokens");
                 });
 
             modelBuilder.Entity("SmartMobility.Models.Entities.Notification", b =>
@@ -371,6 +419,17 @@ namespace SmartMobility.Migrations
                     b.Navigation("Bus");
                 });
 
+            modelBuilder.Entity("SmartMobility.Models.Entities.DeviceToken", b =>
+                {
+                    b.HasOne("SmartMobility.Models.Entities.Bus", "Bus")
+                        .WithMany("DeviceTokens")
+                        .HasForeignKey("BusId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Bus");
+                });
+
             modelBuilder.Entity("SmartMobility.Models.Entities.Notification", b =>
                 {
                     b.HasOne("SmartMobility.Models.Entities.Route", "Route")
@@ -444,6 +503,8 @@ namespace SmartMobility.Migrations
 
             modelBuilder.Entity("SmartMobility.Models.Entities.Bus", b =>
                 {
+                    b.Navigation("DeviceTokens");
+
                     b.Navigation("Positions");
 
                     b.Navigation("Schedules");

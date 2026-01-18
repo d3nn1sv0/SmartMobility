@@ -1,24 +1,26 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using SmartMobility.DTOs;
+using SmartMobility.Models.Enums;
 using SmartMobility.Services.Interfaces;
 
 namespace SmartMobility.Hubs;
 
+[Authorize]
 public class GpsTrackingHub : Hub
 {
-    private readonly IDeviceTokenService _deviceTokenService;
     private readonly IGpsTrackingService _gpsTrackingService;
     private readonly ILogger<GpsTrackingHub> _logger;
 
-    private static readonly Dictionary<string, (int BusId, string Token)> AuthenticatedConnections = new();
+    private static readonly Dictionary<string, int> DriverConnections = new();
+    private static readonly Dictionary<int, string> ClaimedBuses = new();
     private static readonly object ConnectionLock = new();
 
     public GpsTrackingHub(
-        IDeviceTokenService deviceTokenService,
         IGpsTrackingService gpsTrackingService,
         ILogger<GpsTrackingHub> logger)
     {
-        _deviceTokenService = deviceTokenService;
         _gpsTrackingService = gpsTrackingService;
         _logger = logger;
     }
@@ -26,77 +28,126 @@ public class GpsTrackingHub : Hub
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var connectionId = Context.ConnectionId;
+        var userId = GetUserId();
 
         lock (ConnectionLock)
         {
-            if (AuthenticatedConnections.TryGetValue(connectionId, out var auth))
+            if (DriverConnections.TryGetValue(connectionId, out var busId))
             {
-                AuthenticatedConnections.Remove(connectionId);
-                _logger.LogInformation("Device disconnected: ConnectionId={ConnectionId}, BusId={BusId}",
-                    connectionId, auth.BusId);
+                DriverConnections.Remove(connectionId);
+                ClaimedBuses.Remove(busId);
+                _logger.LogInformation("Driver disconnected: UserId={UserId}, ConnectionId={ConnectionId}, BusId={BusId}",
+                    userId, connectionId, busId);
             }
         }
 
-        await _deviceTokenService.ClearConnectionAsync(connectionId);
         await base.OnDisconnectedAsync(exception);
     }
 
-    public async Task AuthenticateDevice(string token)
+    public async Task GoOnline(int busId)
     {
         var connectionId = Context.ConnectionId;
+        var userId = GetUserId();
+        var role = GetUserRole();
 
-        var (isValid, busId, busNumber, error) = await _deviceTokenService.ValidateTokenAsync(token);
-
-        if (!isValid || !busId.HasValue)
+        if (role != UserRole.Driver && role != UserRole.Admin)
         {
-            _logger.LogWarning("Authentication failed for ConnectionId={ConnectionId}: {Error}", connectionId, error);
-            await Clients.Caller.SendAsync("AuthenticationFailed", new HubErrorDto
+            _logger.LogWarning("Non-driver attempted GoOnline: UserId={UserId}, Role={Role}", userId, role);
+            await Clients.Caller.SendAsync("Error", new HubErrorDto
             {
-                Code = "AUTH_FAILED",
-                Message = error ?? "Invalid or expired device token"
+                Code = "NOT_DRIVER",
+                Message = "Kun chauffører kan gå online som bus"
             });
             return;
         }
 
-        await _deviceTokenService.UpdateConnectionAsync(token, connectionId);
-
         lock (ConnectionLock)
         {
-            AuthenticatedConnections[connectionId] = (busId.Value, token);
+            if (DriverConnections.TryGetValue(connectionId, out var currentBusId))
+            {
+                if (currentBusId == busId)
+                {
+                    return;
+                }
+
+                ClaimedBuses.Remove(currentBusId);
+                DriverConnections.Remove(connectionId);
+            }
+
+            if (ClaimedBuses.TryGetValue(busId, out var existingConnectionId))
+            {
+                _logger.LogWarning("Bus already claimed: BusId={BusId}, ExistingConnection={ExistingConnection}, AttemptedBy={ConnectionId}",
+                    busId, existingConnectionId, connectionId);
+
+                Clients.Caller.SendAsync("Error", new HubErrorDto
+                {
+                    Code = "BUS_ALREADY_CLAIMED",
+                    Message = $"Bus {busId} er allerede taget af en anden chauffør"
+                }).Wait();
+                return;
+            }
+
+            DriverConnections[connectionId] = busId;
+            ClaimedBuses[busId] = connectionId;
         }
 
-        await Groups.AddToGroupAsync(connectionId, $"bus-{busId.Value}");
+        await Groups.AddToGroupAsync(connectionId, $"bus-{busId}");
 
-        _logger.LogInformation("Device authenticated: ConnectionId={ConnectionId}, BusId={BusId}, BusNumber={BusNumber}",
-            connectionId, busId.Value, busNumber);
+        _logger.LogInformation("Driver went online: UserId={UserId}, ConnectionId={ConnectionId}, BusId={BusId}",
+            userId, connectionId, busId);
 
-        await Clients.Caller.SendAsync("AuthenticationSucceeded", new AuthenticationResultDto
+        await Clients.Caller.SendAsync("OnlineSucceeded", new AuthenticationResultDto
         {
             Success = true,
-            BusId = busId.Value,
-            BusNumber = busNumber
+            BusId = busId
         });
+    }
+
+    public async Task GoOffline()
+    {
+        var connectionId = Context.ConnectionId;
+        var userId = GetUserId();
+
+        int? busId = null;
+        lock (ConnectionLock)
+        {
+            if (DriverConnections.TryGetValue(connectionId, out var claimedBusId))
+            {
+                busId = claimedBusId;
+                DriverConnections.Remove(connectionId);
+                ClaimedBuses.Remove(claimedBusId);
+            }
+        }
+
+        if (busId.HasValue)
+        {
+            await Groups.RemoveFromGroupAsync(connectionId, $"bus-{busId.Value}");
+            _logger.LogInformation("Driver went offline: UserId={UserId}, ConnectionId={ConnectionId}, BusId={BusId}",
+                userId, connectionId, busId.Value);
+        }
+
+        await Clients.Caller.SendAsync("OfflineSucceeded");
     }
 
     public async Task SendGpsUpdate(double latitude, double longitude, double? speed = null, double? heading = null)
     {
         var connectionId = Context.ConnectionId;
+        var userId = GetUserId();
 
         int busId;
-        bool isAuthenticated;
+        bool isOnline;
         lock (ConnectionLock)
         {
-            isAuthenticated = AuthenticatedConnections.TryGetValue(connectionId, out var auth);
-            busId = isAuthenticated ? auth.BusId : 0;
+            isOnline = DriverConnections.TryGetValue(connectionId, out busId);
         }
 
-        if (!isAuthenticated)
+        if (!isOnline)
         {
-            _logger.LogWarning("Unauthenticated GPS update attempt: ConnectionId={ConnectionId}", connectionId);
+            _logger.LogWarning("GPS update from offline driver: UserId={UserId}, ConnectionId={ConnectionId}", userId, connectionId);
             await Clients.Caller.SendAsync("Error", new HubErrorDto
             {
-                Code = "NOT_AUTHENTICATED",
-                Message = "Device must authenticate before sending GPS updates"
+                Code = "NOT_ONLINE",
+                Message = "Du skal gå online med en bus før du kan sende GPS opdateringer"
             });
             return;
         }
@@ -116,7 +167,7 @@ public class GpsTrackingHub : Hub
             await Clients.Caller.SendAsync("Error", new HubErrorDto
             {
                 Code = "BUS_NOT_FOUND",
-                Message = "Associated bus not found"
+                Message = "Den tilknyttede bus blev ikke fundet"
             });
             return;
         }
@@ -124,37 +175,63 @@ public class GpsTrackingHub : Hub
         await Clients.Group($"subscribers-bus-{busId}").SendAsync("BusPositionUpdated", positionUpdate);
         await Clients.Group("subscribers-all").SendAsync("BusPositionUpdated", positionUpdate);
 
-        _logger.LogDebug("GPS update processed: BusId={BusId}, Lat={Lat}, Lng={Lng}",
-            busId, latitude, longitude);
+        _logger.LogDebug("GPS update processed: UserId={UserId}, BusId={BusId}, Lat={Lat}, Lng={Lng}",
+            userId, busId, latitude, longitude);
     }
 
     public async Task SubscribeToBus(int busId)
     {
         var connectionId = Context.ConnectionId;
         await Groups.AddToGroupAsync(connectionId, $"subscribers-bus-{busId}");
-        _logger.LogInformation("Client subscribed to bus: ConnectionId={ConnectionId}, BusId={BusId}",
-            connectionId, busId);
+        _logger.LogInformation("Client subscribed to bus: UserId={UserId}, ConnectionId={ConnectionId}, BusId={BusId}",
+            GetUserId(), connectionId, busId);
     }
 
     public async Task UnsubscribeFromBus(int busId)
     {
         var connectionId = Context.ConnectionId;
         await Groups.RemoveFromGroupAsync(connectionId, $"subscribers-bus-{busId}");
-        _logger.LogInformation("Client unsubscribed from bus: ConnectionId={ConnectionId}, BusId={BusId}",
-            connectionId, busId);
+        _logger.LogInformation("Client unsubscribed from bus: UserId={UserId}, ConnectionId={ConnectionId}, BusId={BusId}",
+            GetUserId(), connectionId, busId);
     }
 
     public async Task SubscribeToAllBuses()
     {
         var connectionId = Context.ConnectionId;
         await Groups.AddToGroupAsync(connectionId, "subscribers-all");
-        _logger.LogInformation("Client subscribed to all buses: ConnectionId={ConnectionId}", connectionId);
+        _logger.LogInformation("Client subscribed to all buses: UserId={UserId}, ConnectionId={ConnectionId}",
+            GetUserId(), connectionId);
     }
 
     public async Task UnsubscribeFromAllBuses()
     {
         var connectionId = Context.ConnectionId;
         await Groups.RemoveFromGroupAsync(connectionId, "subscribers-all");
-        _logger.LogInformation("Client unsubscribed from all buses: ConnectionId={ConnectionId}", connectionId);
+        _logger.LogInformation("Client unsubscribed from all buses: UserId={UserId}, ConnectionId={ConnectionId}",
+            GetUserId(), connectionId);
+    }
+
+    private int GetUserId()
+    {
+        var userIdClaim = Context.User?.FindFirst(ClaimTypes.NameIdentifier)
+            ?? Context.User?.FindFirst("sub");
+
+        if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var userId))
+        {
+            return userId;
+        }
+
+        return 0;
+    }
+
+    private UserRole GetUserRole()
+    {
+        var roleClaim = Context.User?.FindFirst(ClaimTypes.Role);
+        if (roleClaim != null && Enum.TryParse<UserRole>(roleClaim.Value, out var role))
+        {
+            return role;
+        }
+
+        return UserRole.User;
     }
 }
