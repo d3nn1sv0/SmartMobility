@@ -21,6 +21,7 @@ public class SmartMobilityDbContext : DbContext
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Taxi> Taxis => Set<Taxi>();
     public DbSet<TaxiBooking> TaxiBookings => Set<TaxiBooking>();
+    public DbSet<DeviceToken> DeviceTokens => Set<DeviceToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -97,5 +98,16 @@ public class SmartMobilityDbContext : DbContext
             .WithMany(t => t.Bookings)
             .HasForeignKey(tb => tb.TaxiId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // DeviceToken
+        modelBuilder.Entity<DeviceToken>()
+            .HasOne(dt => dt.Bus)
+            .WithMany(b => b.DeviceTokens)
+            .HasForeignKey(dt => dt.BusId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DeviceToken>()
+            .HasIndex(dt => dt.Token)
+            .IsUnique();
     }
 }

@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using SmartMobility.Data;
+using SmartMobility.Hubs;
 using SmartMobility.Repositories;
 using SmartMobility.Repositories.Interfaces;
+using SmartMobility.Services;
+using SmartMobility.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +30,21 @@ builder.Services.AddDbContext<SmartMobilityDbContext>(options =>
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
+builder.Services.AddScoped<IDeviceTokenService, DeviceTokenService>();
+builder.Services.AddScoped<IGpsTrackingService, GpsTrackingService>();
+
+builder.Services.AddSignalR();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("SignalRPolicy", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -40,8 +58,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors("SignalRPolicy");
+
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<GpsTrackingHub>("/hubs/gpstracking");
 
 app.Run();

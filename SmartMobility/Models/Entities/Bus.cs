@@ -22,4 +22,6 @@ public class Bus
     public ICollection<BusPosition> Positions { get; set; } = new List<BusPosition>();
 
     public ICollection<Schedule> Schedules { get; set; } = new List<Schedule>();
+
+    public ICollection<DeviceToken> DeviceTokens { get; set; } = new List<DeviceToken>();
 }
