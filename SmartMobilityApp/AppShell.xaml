@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="SmartMobilityApp.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:SmartMobilityApp.Views"
+    Title="Smart Mobility"
+    FlyoutBehavior="Disabled">
+
+    <ShellContent
+        Title="Login"
+        ContentTemplate="{DataTemplate views:LoginPage}"
+        Route="LoginPage" />
+
+    <ShellContent
+        Title="Buspositioner"
+        ContentTemplate="{DataTemplate views:PassengerPage}"
+        Route="PassengerPage" />
+
+    <ShellContent
+        Title="Chauffør"
+        ContentTemplate="{DataTemplate views:DriverPage}"
+        Route="DriverPage" />
+
+</Shell>

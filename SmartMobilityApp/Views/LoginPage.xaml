@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:SmartMobilityApp.ViewModels"
+             x:Class="SmartMobilityApp.Views.LoginPage"
+             x:DataType="viewmodels:LoginViewModel"
+             Title="Login"
+             Shell.NavBarIsVisible="False">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="30" VerticalOptions="Center">
+
+            <Label Text="Smart Mobility"
+                   FontSize="32"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   TextColor="{StaticResource Primary}" />
+
+            <Label Text="Log ind for at fortsætte"
+                   FontSize="16"
+                   HorizontalOptions="Center"
+                   TextColor="Gray" />
+
+            <VerticalStackLayout Spacing="5">
+                <Label Text="Email" FontSize="14" />
+                <Entry Text="{Binding Email}"
+                       Placeholder="din@email.dk"
+                       Keyboard="Email" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="5">
+                <Label Text="Adgangskode" FontSize="14" />
+                <Entry Text="{Binding Password}"
+                       Placeholder="Adgangskode"
+                       IsPassword="True" />
+            </VerticalStackLayout>
+
+            <Label Text="{Binding ErrorMessage}"
+                   TextColor="Red"
+                   IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}"
+                   HorizontalOptions="Center" />
+
+            <Button Text="Log ind"
+                    Command="{Binding LoginCommand}"
+                    IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
+                    HeightRequest="50" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               HorizontalOptions="Center" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

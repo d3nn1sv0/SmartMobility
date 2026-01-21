@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:SmartMobilityApp.ViewModels"
+             x:Class="SmartMobilityApp.Views.DriverPage"
+             x:DataType="viewmodels:DriverViewModel"
+             Title="Chauffør">
+
+    <Shell.TitleView>
+        <Grid ColumnDefinitions="*,Auto" Padding="0,0,10,0">
+            <Label Text="Chauffør Mode"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   VerticalOptions="Center" />
+            <Button Text="Log ud"
+                    Grid.Column="1"
+                    Command="{Binding LogoutCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}"
+                    FontSize="14" />
+        </Grid>
+    </Shell.TitleView>
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="20">
+
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="0" Spacing="5">
+            <Label Text="{Binding UserName, StringFormat='Chauffør: {0}'}"
+                   FontSize="16" />
+            <Label Text="{Binding StatusText}"
+                   FontSize="14"
+                   TextColor="Gray" />
+        </VerticalStackLayout>
+
+        <!-- Position info -->
+        <Frame Grid.Row="1" VerticalOptions="Center" Padding="20" CornerRadius="15">
+            <VerticalStackLayout Spacing="20">
+
+                <Label Text="Nuværende Position"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Center" />
+
+                <!-- Latitude -->
+                <Grid ColumnDefinitions="*,*">
+                    <Label Text="Breddegrad:" FontSize="16" />
+                    <Label Grid.Column="1"
+                           Text="{Binding CurrentLatitude, StringFormat='{0:F6}'}"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           HorizontalOptions="End" />
+                </Grid>
+
+                <!-- Longitude -->
+                <Grid ColumnDefinitions="*,*">
+                    <Label Text="Længdegrad:" FontSize="16" />
+                    <Label Grid.Column="1"
+                           Text="{Binding CurrentLongitude, StringFormat='{0:F6}'}"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           HorizontalOptions="End" />
+                </Grid>
+
+                <!-- Speed -->
+                <Grid ColumnDefinitions="*,*">
+                    <Label Text="Hastighed:" FontSize="16" />
+                    <Label Grid.Column="1"
+                           Text="{Binding CurrentSpeed, StringFormat='{0:F1} m/s'}"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           HorizontalOptions="End" />
+                </Grid>
+
+                <!-- Status indikator -->
+                <Frame BackgroundColor="{Binding IsTracking, Converter={StaticResource BoolToColorConverter}}"
+                       CornerRadius="10"
+                       Padding="10"
+                       HorizontalOptions="Center">
+                    <Label Text="{Binding IsTracking, Converter={StaticResource BoolToTrackingTextConverter}}"
+                           TextColor="White"
+                           FontAttributes="Bold" />
+                </Frame>
+
+            </VerticalStackLayout>
+        </Frame>
+
+        <!-- Fejlbesked -->
+        <Label Grid.Row="1"
+               Text="{Binding ErrorMessage}"
+               TextColor="Red"
+               IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}"
+               HorizontalOptions="Center"
+               VerticalOptions="End"
+               Margin="0,0,0,20" />
+
+        <!-- Start/Stop knap -->
+        <Button Grid.Row="2"
+                Text="{Binding IsTracking, Converter={StaticResource BoolToButtonTextConverter}}"
+                Command="{Binding ToggleTrackingCommand}"
+                BackgroundColor="{Binding IsTracking, Converter={StaticResource BoolToButtonColorConverter}}"
+                HeightRequest="60"
+                FontSize="18"
+                FontAttributes="Bold" />
+
+    </Grid>
+</ContentPage>
