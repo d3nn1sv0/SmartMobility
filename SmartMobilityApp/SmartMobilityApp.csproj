@@ -30,4 +30,8 @@
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 	</ItemGroup>
 
+	<Target Name="AdbReverse" BeforeTargets="Install" Condition="$(TargetFramework.Contains('android'))">
+		<Exec Command="&quot;$(AndroidSdkDirectory)\platform-tools\adb&quot; reverse tcp:5174 tcp:5174" IgnoreExitCode="true" />
+	</Target>
+
 </Project>

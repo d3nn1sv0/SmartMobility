@@ -36,7 +36,7 @@ public partial class PassengerViewModel : BaseViewModel
             IsRefreshing = true;
             ErrorMessage = null;
 
-            var positions = await _apiService.GetAsync<List<BusLocationDto>>("/buspositions/all/latest");
+            var positions = await _apiService.GetAsync<List<BusLocationDto>>("buspositions/all/latest");
 
             BusPositions.Clear();
 

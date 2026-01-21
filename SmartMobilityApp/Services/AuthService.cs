@@ -24,7 +24,7 @@ public class AuthService : IAuthService
             Password = password
         };
 
-        var response = await _apiService.PostAsync<LoginDto, AuthResponseDto>("/auth/login", loginDto);
+        var response = await _apiService.PostAsync<LoginDto, AuthResponseDto>("auth/login", loginDto);
 
         if (response == null)
         {
@@ -68,7 +68,7 @@ public class AuthService : IAuthService
 
             _apiService.SetAuthToken(token);
 
-            var user = await _apiService.GetAsync<UserDto>("/auth/me");
+            var user = await _apiService.GetAsync<UserDto>("auth/me");
 
             if (user != null)
             {

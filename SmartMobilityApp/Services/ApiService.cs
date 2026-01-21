@@ -8,7 +8,7 @@ public class ApiService : IApiService
 {
     private readonly HttpClient _httpClient;
     private readonly JsonSerializerOptions _jsonOptions;
-    private const string BaseUrl = "https://localhost:7001/api";
+    private const string BaseUrl = "http://10.0.2.2:5174/api/";
 
     public ApiService()
     {

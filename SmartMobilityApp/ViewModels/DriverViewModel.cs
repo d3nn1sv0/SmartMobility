@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SmartMobilityApp.Models;
@@ -10,7 +11,6 @@ public partial class DriverViewModel : BaseViewModel
     private readonly IApiService _apiService;
     private readonly IAuthService _authService;
     private CancellationTokenSource? _trackingCts;
-    private int _assignedBusId = 1;
 
     [ObservableProperty]
     private bool _isTracking;
@@ -27,12 +27,72 @@ public partial class DriverViewModel : BaseViewModel
     [ObservableProperty]
     private string _statusText = "Tracking stoppet";
 
+    [ObservableProperty]
+    private bool _isLoadingBuses;
+
+    [ObservableProperty]
+    private BusDto? _selectedBus;
+
+    public ObservableCollection<BusDto> AvailableBuses { get; } = new();
+
     public string UserName => _authService.CurrentUser?.Name ?? _authService.CurrentUser?.Email ?? "Chauffør";
+
+    public bool CanStartTracking => SelectedBus != null && !IsTracking;
+
+    public bool CanToggleTracking => IsTracking || SelectedBus != null;
 
     public DriverViewModel(IApiService apiService, IAuthService authService)
     {
         _apiService = apiService;
         _authService = authService;
+    }
+
+    partial void OnSelectedBusChanged(BusDto? value)
+    {
+        OnPropertyChanged(nameof(CanStartTracking));
+        OnPropertyChanged(nameof(CanToggleTracking));
+    }
+
+    partial void OnIsTrackingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanStartTracking));
+        OnPropertyChanged(nameof(CanToggleTracking));
+    }
+
+    [RelayCommand]
+    private async Task LoadBusesAsync()
+    {
+        if (IsLoadingBuses) return;
+
+        try
+        {
+            IsLoadingBuses = true;
+            ErrorMessage = null;
+
+            var buses = await _apiService.GetAsync<List<BusDto>>("buses");
+
+            AvailableBuses.Clear();
+
+            if (buses != null && buses.Count > 0)
+            {
+                foreach (var bus in buses)
+                {
+                    AvailableBuses.Add(bus);
+                }
+            }
+            else
+            {
+                ErrorMessage = "Ingen busser fundet. Kontakt administrator.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Kunne ikke hente busser: {ex.Message}";
+        }
+        finally
+        {
+            IsLoadingBuses = false;
+        }
     }
 
     [RelayCommand]
@@ -50,6 +110,12 @@ public partial class DriverViewModel : BaseViewModel
 
     private async Task StartTrackingAsync()
     {
+        if (SelectedBus == null)
+        {
+            ErrorMessage = "Vælg en bus før tracking kan startes";
+            return;
+        }
+
         try
         {
             var status = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
@@ -61,7 +127,7 @@ public partial class DriverViewModel : BaseViewModel
             }
 
             IsTracking = true;
-            StatusText = "Tracking aktiv";
+            StatusText = $"Tracking aktiv - Bus {SelectedBus.BusNumber}";
             ErrorMessage = null;
 
             _trackingCts = new CancellationTokenSource();
@@ -99,7 +165,7 @@ public partial class DriverViewModel : BaseViewModel
                     Timeout = TimeSpan.FromSeconds(10)
                 }, cancellationToken);
 
-                if (location != null)
+                if (location != null && SelectedBus != null)
                 {
                     CurrentLatitude = location.Latitude;
                     CurrentLongitude = location.Longitude;
@@ -107,17 +173,17 @@ public partial class DriverViewModel : BaseViewModel
 
                     var positionDto = new CreateBusPositionDto
                     {
-                        BusId = _assignedBusId,
+                        BusId = SelectedBus.Id,
                         Latitude = location.Latitude,
                         Longitude = location.Longitude,
                         Speed = location.Speed,
                         Heading = location.Course
                     };
 
-                    var success = await _apiService.PostAsync("/buspositions", positionDto);
+                    var success = await _apiService.PostAsync("buspositions", positionDto);
 
                     StatusText = success
-                        ? $"Sendt: {DateTime.Now:HH:mm:ss}"
+                        ? $"Bus {SelectedBus.BusNumber} - Sendt: {DateTime.Now:HH:mm:ss}"
                         : "Fejl ved afsendelse";
                 }
             }

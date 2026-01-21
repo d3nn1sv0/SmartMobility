@@ -21,9 +21,8 @@
         </Grid>
     </Shell.TitleView>
 
-    <Grid RowDefinitions="Auto,*,Auto" Padding="20">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="20">
 
-        <!-- Header -->
         <VerticalStackLayout Grid.Row="0" Spacing="5">
             <Label Text="{Binding UserName, StringFormat='Chauffør: {0}'}"
                    FontSize="16" />
@@ -32,8 +31,34 @@
                    TextColor="Gray" />
         </VerticalStackLayout>
 
-        <!-- Position info -->
-        <Frame Grid.Row="1" VerticalOptions="Center" Padding="20" CornerRadius="15">
+        <Frame Grid.Row="1" Padding="15" CornerRadius="10" Margin="0,15,0,0">
+            <VerticalStackLayout Spacing="10">
+                <Label Text="Vælg bus"
+                       FontSize="16"
+                       FontAttributes="Bold" />
+
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                    <Picker ItemsSource="{Binding AvailableBuses}"
+                            SelectedItem="{Binding SelectedBus}"
+                            Title="Vælg en bus..."
+                            IsEnabled="{Binding IsTracking, Converter={StaticResource InvertedBoolConverter}}"
+                            HorizontalOptions="FillAndExpand" />
+
+                    <ActivityIndicator Grid.Column="1"
+                                       IsRunning="{Binding IsLoadingBuses}"
+                                       IsVisible="{Binding IsLoadingBuses}"
+                                       HeightRequest="30"
+                                       WidthRequest="30" />
+                </Grid>
+
+                <Label Text="Bus skal vælges før tracking kan startes"
+                       FontSize="12"
+                       TextColor="Gray"
+                       IsVisible="{Binding SelectedBus, Converter={StaticResource NullToBoolConverter}}" />
+            </VerticalStackLayout>
+        </Frame>
+
+        <Frame Grid.Row="2" VerticalOptions="Center" Padding="20" CornerRadius="15">
             <VerticalStackLayout Spacing="20">
 
                 <Label Text="Nuværende Position"
@@ -41,7 +66,6 @@
                        FontAttributes="Bold"
                        HorizontalOptions="Center" />
 
-                <!-- Latitude -->
                 <Grid ColumnDefinitions="*,*">
                     <Label Text="Breddegrad:" FontSize="16" />
                     <Label Grid.Column="1"
@@ -51,7 +75,6 @@
                            HorizontalOptions="End" />
                 </Grid>
 
-                <!-- Longitude -->
                 <Grid ColumnDefinitions="*,*">
                     <Label Text="Længdegrad:" FontSize="16" />
                     <Label Grid.Column="1"
@@ -61,7 +84,6 @@
                            HorizontalOptions="End" />
                 </Grid>
 
-                <!-- Speed -->
                 <Grid ColumnDefinitions="*,*">
                     <Label Text="Hastighed:" FontSize="16" />
                     <Label Grid.Column="1"
@@ -71,7 +93,6 @@
                            HorizontalOptions="End" />
                 </Grid>
 
-                <!-- Status indikator -->
                 <Frame BackgroundColor="{Binding IsTracking, Converter={StaticResource BoolToColorConverter}}"
                        CornerRadius="10"
                        Padding="10"
@@ -84,8 +105,7 @@
             </VerticalStackLayout>
         </Frame>
 
-        <!-- Fejlbesked -->
-        <Label Grid.Row="1"
+        <Label Grid.Row="2"
                Text="{Binding ErrorMessage}"
                TextColor="Red"
                IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}"
@@ -93,11 +113,11 @@
                VerticalOptions="End"
                Margin="0,0,0,20" />
 
-        <!-- Start/Stop knap -->
-        <Button Grid.Row="2"
+        <Button Grid.Row="3"
                 Text="{Binding IsTracking, Converter={StaticResource BoolToButtonTextConverter}}"
                 Command="{Binding ToggleTrackingCommand}"
                 BackgroundColor="{Binding IsTracking, Converter={StaticResource BoolToButtonColorConverter}}"
+                IsEnabled="{Binding CanToggleTracking}"
                 HeightRequest="60"
                 FontSize="18"
                 FontAttributes="Bold" />
