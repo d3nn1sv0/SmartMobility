@@ -26,19 +26,16 @@ public class SmartMobilityDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // User
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Email)
             .IsUnique();
 
-        // Bus -> Route relationship
         modelBuilder.Entity<Bus>()
             .HasOne(b => b.CurrentRoute)
             .WithMany(r => r.Buses)
             .HasForeignKey(b => b.CurrentRouteId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        // RouteStop - many-to-many between Route and Stop
         modelBuilder.Entity<RouteStop>()
             .HasOne(rs => rs.Route)
             .WithMany(r => r.RouteStops)
@@ -55,7 +52,6 @@ public class SmartMobilityDbContext : DbContext
             .HasIndex(rs => new { rs.RouteId, rs.StopOrder })
             .IsUnique();
 
-        // Schedule
         modelBuilder.Entity<Schedule>()
             .HasOne(s => s.Route)
             .WithMany(r => r.Schedules)
@@ -68,7 +64,6 @@ public class SmartMobilityDbContext : DbContext
             .HasForeignKey(s => s.BusId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        // BusPosition
         modelBuilder.Entity<BusPosition>()
             .HasOne(bp => bp.Bus)
             .WithMany(b => b.Positions)
@@ -78,14 +73,12 @@ public class SmartMobilityDbContext : DbContext
         modelBuilder.Entity<BusPosition>()
             .HasIndex(bp => bp.Timestamp);
 
-        // Notification
         modelBuilder.Entity<Notification>()
             .HasOne(n => n.User)
             .WithMany(u => u.Notifications)
             .HasForeignKey(n => n.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // TaxiBooking
         modelBuilder.Entity<TaxiBooking>()
             .HasOne(tb => tb.User)
             .WithMany(u => u.TaxiBookings)

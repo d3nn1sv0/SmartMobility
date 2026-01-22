@@ -17,6 +17,8 @@
             <converters:BoolToButtonTextConverter x:Key="BoolToButtonTextConverter" />
             <converters:BoolToButtonColorConverter x:Key="BoolToButtonColorConverter" />
             <converters:NullToBoolConverter x:Key="NullToBoolConverter" />
+            <converters:BoolToHighlightColorConverter x:Key="BoolToHighlightColorConverter" />
+            <converters:SecondsToEtaConverter x:Key="SecondsToEtaConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

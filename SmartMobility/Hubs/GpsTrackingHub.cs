@@ -160,9 +160,9 @@ public class GpsTrackingHub : Hub
             Heading = heading
         };
 
-        var positionUpdate = await _gpsTrackingService.ProcessGpsUpdateAsync(busId, update);
+        var result = await _gpsTrackingService.ProcessGpsUpdateAsync(busId, update);
 
-        if (positionUpdate == null)
+        if (result?.PositionUpdate == null)
         {
             await Clients.Caller.SendAsync("Error", new HubErrorDto
             {
@@ -172,8 +172,17 @@ public class GpsTrackingHub : Hub
             return;
         }
 
-        await Clients.Group($"subscribers-bus-{busId}").SendAsync("BusPositionUpdated", positionUpdate);
-        await Clients.Group("subscribers-all").SendAsync("BusPositionUpdated", positionUpdate);
+        await Clients.Group($"subscribers-bus-{busId}").SendAsync("BusPositionUpdated", result.PositionUpdate);
+        await Clients.Group("subscribers-all").SendAsync("BusPositionUpdated", result.PositionUpdate);
+
+        if (result.NextStopNotification != null)
+        {
+            await Clients.Group($"subscribers-bus-{busId}").SendAsync("NextStopApproaching", result.NextStopNotification);
+            await Clients.Group("subscribers-all").SendAsync("NextStopApproaching", result.NextStopNotification);
+
+            _logger.LogInformation("Next stop notification sent: BusId={BusId}, StopId={StopId}, StopName={StopName}",
+                busId, result.NextStopNotification.StopId, result.NextStopNotification.StopName);
+        }
 
         _logger.LogDebug("GPS update processed: UserId={UserId}, BusId={BusId}, Lat={Lat}, Lng={Lng}",
             userId, busId, latitude, longitude);

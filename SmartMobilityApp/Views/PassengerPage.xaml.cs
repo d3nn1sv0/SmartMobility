@@ -15,6 +15,6 @@ public partial class PassengerPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await _viewModel.RefreshCommand.ExecuteAsync(null);
+        await _viewModel.InitializeCommand.ExecuteAsync(null);
     }
 }

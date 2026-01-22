@@ -101,6 +101,7 @@ builder.Services.AddDbContext<SmartMobilityDbContext>(options =>
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
+builder.Services.AddScoped<IEtaService, EtaService>();
 builder.Services.AddScoped<IGpsTrackingService, GpsTrackingService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 

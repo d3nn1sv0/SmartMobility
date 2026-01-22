@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.AspNetCore.SignalR.Client;
 using SmartMobilityApp.Models;
 using SmartMobilityApp.Services;
 
@@ -10,7 +11,9 @@ public partial class DriverViewModel : BaseViewModel
 {
     private readonly IApiService _apiService;
     private readonly IAuthService _authService;
+    private HubConnection? _hubConnection;
     private CancellationTokenSource? _trackingCts;
+    private const string HubUrl = "http://10.0.2.2:5174/hubs/gpstracking";
 
     [ObservableProperty]
     private bool _isTracking;
@@ -126,6 +129,42 @@ public partial class DriverViewModel : BaseViewModel
                 return;
             }
 
+            StatusText = "Forbinder til server...";
+
+            var token = await SecureStorage.GetAsync("auth_token");
+            if (string.IsNullOrEmpty(token))
+            {
+                ErrorMessage = "Ikke logget ind";
+                return;
+            }
+
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl(HubUrl, options =>
+                {
+                    options.AccessTokenProvider = () => Task.FromResult<string?>(token);
+                })
+                .WithAutomaticReconnect()
+                .Build();
+
+            _hubConnection.On<object>("OnlineSucceeded", _ =>
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    StatusText = $"Online - Bus {SelectedBus.BusNumber}";
+                });
+            });
+
+            _hubConnection.On<object>("Error", error =>
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    ErrorMessage = $"Server fejl: {error}";
+                });
+            });
+
+            await _hubConnection.StartAsync();
+            await _hubConnection.InvokeAsync("GoOnline", SelectedBus.Id);
+
             IsTracking = true;
             StatusText = $"Tracking aktiv - Bus {SelectedBus.BusNumber}";
             ErrorMessage = null;
@@ -147,10 +186,23 @@ public partial class DriverViewModel : BaseViewModel
         _trackingCts?.Dispose();
         _trackingCts = null;
 
+        if (_hubConnection != null)
+        {
+            try
+            {
+                if (_hubConnection.State == HubConnectionState.Connected)
+                {
+                    await _hubConnection.InvokeAsync("GoOffline");
+                }
+                await _hubConnection.StopAsync();
+                await _hubConnection.DisposeAsync();
+            }
+            catch { }
+            _hubConnection = null;
+        }
+
         IsTracking = false;
         StatusText = "Tracking stoppet";
-
-        await Task.CompletedTask;
     }
 
     private async Task TrackingLoopAsync(CancellationToken cancellationToken)
@@ -165,26 +217,20 @@ public partial class DriverViewModel : BaseViewModel
                     Timeout = TimeSpan.FromSeconds(10)
                 }, cancellationToken);
 
-                if (location != null && SelectedBus != null)
+                if (location != null && SelectedBus != null && _hubConnection?.State == HubConnectionState.Connected)
                 {
                     CurrentLatitude = location.Latitude;
                     CurrentLongitude = location.Longitude;
                     CurrentSpeed = location.Speed;
 
-                    var positionDto = new CreateBusPositionDto
-                    {
-                        BusId = SelectedBus.Id,
-                        Latitude = location.Latitude,
-                        Longitude = location.Longitude,
-                        Speed = location.Speed,
-                        Heading = location.Course
-                    };
+                    await _hubConnection.InvokeAsync("SendGpsUpdate",
+                        location.Latitude,
+                        location.Longitude,
+                        location.Speed,
+                        location.Course,
+                        cancellationToken);
 
-                    var success = await _apiService.PostAsync("buspositions", positionDto);
-
-                    StatusText = success
-                        ? $"Bus {SelectedBus.BusNumber} - Sendt: {DateTime.Now:HH:mm:ss}"
-                        : "Fejl ved afsendelse";
+                    StatusText = $"Bus {SelectedBus.BusNumber} - Sendt: {DateTime.Now:HH:mm:ss}";
                 }
             }
             catch (OperationCanceledException)
@@ -198,7 +244,7 @@ public partial class DriverViewModel : BaseViewModel
 
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(15), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
             }
             catch (OperationCanceledException)
             {

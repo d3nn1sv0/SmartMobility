@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:SmartMobilityApp.ViewModels"
+             xmlns:models="clr-namespace:SmartMobilityApp.Models"
+             xmlns:mapsui="clr-namespace:Mapsui.UI.Maui;assembly=Mapsui.UI.Maui"
+             x:Class="SmartMobilityApp.Views.BusMapPage"
+             x:DataType="viewmodels:BusMapViewModel"
+             Title="Rute">
+
+    <Shell.TitleView>
+        <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,0,10,0">
+            <Button Text="←"
+                    Command="{Binding GoBackCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}"
+                    FontSize="20"
+                    WidthRequest="50" />
+            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                <Label Text="{Binding RouteNumber, StringFormat='Rute {0}'}"
+                       FontSize="16"
+                       FontAttributes="Bold" />
+                <Label Text="{Binding RouteName}"
+                       FontSize="12"
+                       TextColor="Gray" />
+            </VerticalStackLayout>
+            <Button Text="⟳"
+                    Grid.Column="2"
+                    Command="{Binding RefreshCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource Primary}"
+                    FontSize="20"
+                    WidthRequest="50" />
+        </Grid>
+    </Shell.TitleView>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+
+        <Frame Grid.Row="0"
+               Margin="10,10,10,5"
+               Padding="0"
+               CornerRadius="10"
+               BorderColor="LightGray"
+               IsVisible="{Binding HasBusData}">
+            <VerticalStackLayout>
+                <Label Text="Busser på ruten"
+                       FontSize="12"
+                       FontAttributes="Bold"
+                       Padding="10,8"
+                       BackgroundColor="{StaticResource Primary}"
+                       TextColor="White" />
+                <CollectionView x:Name="BusCollection"
+                                ItemsSource="{Binding BusesOnRoute}"
+                                HeightRequest="60"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedBus}">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Horizontal" ItemSpacing="5" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:BusLocationDto">
+                            <Frame Padding="10,5"
+                                   Margin="5,5"
+                                   CornerRadius="8"
+                                   BorderColor="{StaticResource Primary}">
+                                <Frame.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={x:Reference BusCollection}, Path=BindingContext.SelectBusCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Frame.GestureRecognizers>
+                                <VerticalStackLayout>
+                                    <Label Text="{Binding BusNumber, StringFormat='Bus {0}'}"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           HorizontalOptions="Center" />
+                                    <Label Text="{Binding Speed, StringFormat='{0:F0} km/t'}"
+                                           FontSize="10"
+                                           TextColor="Gray"
+                                           HorizontalOptions="Center" />
+                                </VerticalStackLayout>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+        </Frame>
+
+        <Label Grid.Row="0"
+               Text="Ingen aktive busser på denne rute"
+               IsVisible="{Binding HasBusData, Converter={StaticResource InvertedBoolConverter}}"
+               TextColor="Gray"
+               HorizontalOptions="Center"
+               Margin="10,15" />
+
+        <Frame Grid.Row="1"
+               IsVisible="{Binding LatestNotification, Converter={StaticResource StringNotNullOrEmptyConverter}}"
+               BackgroundColor="#E3F2FD"
+               Padding="10"
+               Margin="10,0,10,5"
+               CornerRadius="8"
+               BorderColor="#1565C0">
+            <Grid ColumnDefinitions="Auto,*">
+                <Label Text="🔔"
+                       FontSize="16"
+                       VerticalOptions="Center" />
+                <Label Grid.Column="1"
+                       Text="{Binding LatestNotification}"
+                       TextColor="#1565C0"
+                       FontSize="14"
+                       VerticalOptions="Center"
+                       Margin="8,0,0,0" />
+            </Grid>
+        </Frame>
+
+        <mapsui:MapControl x:Name="MapControl" Grid.Row="2" />
+
+        <Frame Grid.Row="3"
+               IsVisible="{Binding HasEtaData}"
+               Margin="10,5"
+               Padding="0"
+               CornerRadius="10"
+               BorderColor="LightGray">
+            <VerticalStackLayout>
+                <Label Text="Kommende stoppesteder"
+                       FontSize="14"
+                       FontAttributes="Bold"
+                       Padding="10,10,10,5"
+                       BackgroundColor="{StaticResource Primary}"
+                       TextColor="White" />
+                <CollectionView ItemsSource="{Binding StopEtas}"
+                                HeightRequest="120"
+                                SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:StopEtaDto">
+                            <Grid ColumnDefinitions="Auto,*,Auto" Padding="10,8" BackgroundColor="{Binding IsNextStop, Converter={StaticResource BoolToHighlightColorConverter}}">
+                                <Label Text="{Binding StopOrder}"
+                                       FontSize="12"
+                                       TextColor="Gray"
+                                       WidthRequest="25"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding StopName}"
+                                       FontSize="14"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="2"
+                                       Text="{Binding EstimatedSeconds, Converter={StaticResource SecondsToEtaConverter}}"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Primary}"
+                                       VerticalOptions="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+        </Frame>
+
+        <Label Grid.Row="4"
+               Text="{Binding ErrorMessage}"
+               TextColor="Red"
+               IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}"
+               HorizontalOptions="Center"
+               Margin="10" />
+
+        <ActivityIndicator Grid.Row="2"
+                           IsRunning="{Binding IsBusy}"
+                           IsVisible="{Binding IsBusy}"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           Color="{StaticResource Primary}" />
+
+    </Grid>
+</ContentPage>

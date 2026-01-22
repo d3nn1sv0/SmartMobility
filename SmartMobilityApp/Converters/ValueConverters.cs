@@ -104,3 +104,40 @@ public class NullToBoolConverter : IValueConverter
         throw new NotImplementedException();
     }
 }
+
+public class BoolToHighlightColorConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool isHighlighted)
+            return isHighlighted ? Color.FromArgb("#E3F2FD") : Colors.Transparent;
+        return Colors.Transparent;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+public class SecondsToEtaConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is int seconds)
+        {
+            if (seconds <= 0)
+                return "ankommet";
+            if (seconds < 60)
+                return $"{seconds} sek";
+            var minutes = (int)Math.Ceiling(seconds / 60.0);
+            return $"{minutes} min";
+        }
+        return "-";
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}

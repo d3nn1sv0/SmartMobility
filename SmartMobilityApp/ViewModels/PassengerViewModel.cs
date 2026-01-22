@@ -10,19 +10,59 @@ public partial class PassengerViewModel : BaseViewModel
 {
     private readonly IApiService _apiService;
     private readonly IAuthService _authService;
+    private readonly ISignalRService _signalRService;
 
     [ObservableProperty]
-    private ObservableCollection<BusLocationDto> _busPositions = new();
+    private ObservableCollection<RouteDto> _routes = new();
 
     [ObservableProperty]
     private bool _isRefreshing;
 
+    [ObservableProperty]
+    private string? _latestNotification;
+
+    [ObservableProperty]
+    private bool _isConnected;
+
     public string UserName => _authService.CurrentUser?.Name ?? _authService.CurrentUser?.Email ?? "Passager";
 
-    public PassengerViewModel(IApiService apiService, IAuthService authService)
+    public PassengerViewModel(IApiService apiService, IAuthService authService, ISignalRService signalRService)
     {
         _apiService = apiService;
         _authService = authService;
+        _signalRService = signalRService;
+
+        _signalRService.NextStopApproaching += OnNextStopApproaching;
+        _signalRService.ConnectionStateChanged += OnConnectionStateChanged;
+    }
+
+    private void OnNextStopApproaching(object? sender, NextStopNotificationDto notification)
+    {
+        LatestNotification = $"Bus {notification.BusNumber} nærmer sig {notification.StopName}";
+
+        Task.Delay(10000).ContinueWith(_ =>
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (LatestNotification?.Contains(notification.StopName) == true)
+                {
+                    LatestNotification = null;
+                }
+            });
+        });
+    }
+
+    private void OnConnectionStateChanged(object? sender, string state)
+    {
+        IsConnected = state == "Connected";
+    }
+
+    [RelayCommand]
+    private async Task InitializeAsync()
+    {
+        await _signalRService.ConnectAsync();
+        await _signalRService.SubscribeToAllBusesAsync();
+        await RefreshAsync();
     }
 
     [RelayCommand]
@@ -36,21 +76,21 @@ public partial class PassengerViewModel : BaseViewModel
             IsRefreshing = true;
             ErrorMessage = null;
 
-            var positions = await _apiService.GetAsync<List<BusLocationDto>>("buspositions/all/latest");
+            var routes = await _apiService.GetAsync<List<RouteDto>>("routes");
 
-            BusPositions.Clear();
+            Routes.Clear();
 
-            if (positions != null)
+            if (routes != null)
             {
-                foreach (var position in positions)
+                foreach (var route in routes.Where(r => r.IsActive))
                 {
-                    BusPositions.Add(position);
+                    Routes.Add(route);
                 }
             }
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Kunne ikke hente buspositioner: {ex.Message}";
+            ErrorMessage = $"Kunne ikke hente ruter: {ex.Message}";
         }
         finally
         {
@@ -64,5 +104,16 @@ public partial class PassengerViewModel : BaseViewModel
     {
         await _authService.LogoutAsync();
         await Shell.Current.GoToAsync("//LoginPage");
+    }
+
+    [RelayCommand]
+    private async Task SelectRouteAsync(RouteDto route)
+    {
+        if (route == null) return;
+
+        await Shell.Current.GoToAsync("BusMapPage", new Dictionary<string, object>
+        {
+            ["Route"] = route
+        });
     }
 }

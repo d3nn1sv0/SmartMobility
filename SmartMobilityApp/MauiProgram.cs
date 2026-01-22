@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using SkiaSharp.Views.Maui.Controls.Hosting;
 using SmartMobilityApp.Services;
 using SmartMobilityApp.ViewModels;
 using SmartMobilityApp.Views;
@@ -11,18 +12,22 @@ public static class MauiProgram
     {
         var builder = MauiApp.CreateBuilder();
         builder
-            .UseMauiApp<App>();
+            .UseMauiApp<App>()
+            .UseSkiaSharp();
 
         builder.Services.AddSingleton<IApiService, ApiService>();
         builder.Services.AddSingleton<IAuthService, AuthService>();
+        builder.Services.AddSingleton<ISignalRService, SignalRService>();
 
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<PassengerViewModel>();
         builder.Services.AddTransient<DriverViewModel>();
+        builder.Services.AddTransient<BusMapViewModel>();
 
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<PassengerPage>();
         builder.Services.AddTransient<DriverPage>();
+        builder.Services.AddTransient<BusMapPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();

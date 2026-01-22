@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartMobility.Data;
 using SmartMobility.DTOs;
 using SmartMobility.Models.Entities;
+using SmartMobility.Services.Interfaces;
 
 namespace SmartMobility.Controllers;
 
@@ -11,10 +12,12 @@ namespace SmartMobility.Controllers;
 public class BusPositionsController : ControllerBase
 {
     private readonly SmartMobilityDbContext _context;
+    private readonly IEtaService _etaService;
 
-    public BusPositionsController(SmartMobilityDbContext context)
+    public BusPositionsController(SmartMobilityDbContext context, IEtaService etaService)
     {
         _context = context;
+        _etaService = etaService;
     }
 
     [HttpGet("bus/{busId}")]
@@ -145,5 +148,31 @@ public class BusPositionsController : ControllerBase
         };
 
         return CreatedAtAction(nameof(GetLatestPosition), new { busId = position.BusId }, result);
+    }
+
+    [HttpGet("bus/{busId}/eta")]
+    public async Task<ActionResult<BusEtaResponseDto>> GetEtaForBus(int busId)
+    {
+        var eta = await _etaService.GetEtaForBusAsync(busId);
+
+        if (eta == null)
+        {
+            return NotFound("Bus not found");
+        }
+
+        return Ok(eta);
+    }
+
+    [HttpGet("bus/{busId}/nextstop")]
+    public async Task<ActionResult<StopEtaDto>> GetNextStopForBus(int busId)
+    {
+        var nextStop = await _etaService.GetNextStopForBusAsync(busId);
+
+        if (nextStop == null)
+        {
+            return NotFound("Next stop not found or bus has no route");
+        }
+
+        return Ok(nextStop);
     }
 }

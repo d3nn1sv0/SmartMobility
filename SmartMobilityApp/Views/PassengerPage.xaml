@@ -5,11 +5,11 @@
              xmlns:models="clr-namespace:SmartMobilityApp.Models"
              x:Class="SmartMobilityApp.Views.PassengerPage"
              x:DataType="viewmodels:PassengerViewModel"
-             Title="Buspositioner">
+             Title="Ruter">
 
     <Shell.TitleView>
         <Grid ColumnDefinitions="*,Auto" Padding="0,0,10,0">
-            <Label Text="Buspositioner"
+            <Label Text="Vælg Rute"
                    FontSize="18"
                    FontAttributes="Bold"
                    VerticalOptions="Center" />
@@ -22,7 +22,7 @@
         </Grid>
     </Shell.TitleView>
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="Auto,Auto,*">
 
         <VerticalStackLayout Grid.Row="0" Padding="15" BackgroundColor="{StaticResource Primary}">
             <Label Text="{Binding UserName, StringFormat='Velkommen, {0}'}"
@@ -30,16 +30,42 @@
                    FontSize="16" />
         </VerticalStackLayout>
 
-        <RefreshView Grid.Row="1"
+        <Frame Grid.Row="1"
+               IsVisible="{Binding LatestNotification, Converter={StaticResource StringNotNullOrEmptyConverter}}"
+               BackgroundColor="#E3F2FD"
+               Padding="15"
+               Margin="10,10,10,0"
+               CornerRadius="8"
+               BorderColor="#1565C0">
+            <Grid ColumnDefinitions="Auto,*">
+                <Label Text="🔔"
+                       FontSize="20"
+                       VerticalOptions="Center" />
+                <Label Grid.Column="1"
+                       Text="{Binding LatestNotification}"
+                       TextColor="#1565C0"
+                       FontSize="14"
+                       VerticalOptions="Center"
+                       Margin="10,0,0,0" />
+            </Grid>
+        </Frame>
+
+        <RefreshView Grid.Row="2"
                      IsRefreshing="{Binding IsRefreshing}"
                      Command="{Binding RefreshCommand}">
 
-            <CollectionView ItemsSource="{Binding BusPositions}"
-                            EmptyView="Ingen busser fundet. Træk ned for at opdatere.">
+            <CollectionView x:Name="RouteCollection"
+                            ItemsSource="{Binding Routes}"
+                            EmptyView="Ingen ruter fundet. Træk ned for at opdatere.">
 
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="models:BusLocationDto">
+                    <DataTemplate x:DataType="models:RouteDto">
                         <Frame Margin="10,5" Padding="15" CornerRadius="10" BorderColor="LightGray">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={x:Reference RouteCollection}, Path=BindingContext.SelectRouteCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Frame.GestureRecognizers>
                             <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
 
                                 <Frame Grid.RowSpan="2"
@@ -49,32 +75,29 @@
                                        HeightRequest="50"
                                        Padding="0"
                                        VerticalOptions="Center">
-                                    <Label Text="🚌"
-                                           FontSize="24"
+                                    <Label Text="{Binding RouteNumber}"
+                                           FontSize="16"
+                                           FontAttributes="Bold"
+                                           TextColor="White"
                                            HorizontalOptions="Center"
                                            VerticalOptions="Center" />
                                 </Frame>
 
                                 <VerticalStackLayout Grid.Column="1" Margin="15,0,0,0">
-                                    <Label Text="{Binding BusNumber, StringFormat='Bus {0}'}"
+                                    <Label Text="{Binding Name}"
                                            FontSize="18"
                                            FontAttributes="Bold" />
-                                    <Label Text="{Binding RouteName}"
+                                    <Label Text="{Binding Description}"
                                            FontSize="14"
                                            TextColor="Gray" />
                                 </VerticalStackLayout>
 
-                                <VerticalStackLayout Grid.Column="2" Grid.RowSpan="2"
-                                                     VerticalOptions="Center"
-                                                     HorizontalOptions="End">
-                                    <Label Text="{Binding Speed, StringFormat='{0:F0} km/t'}"
-                                           FontSize="14"
-                                           HorizontalOptions="End" />
-                                    <Label Text="{Binding Timestamp, StringFormat='{0:HH:mm:ss}'}"
-                                           FontSize="12"
-                                           TextColor="Gray"
-                                           HorizontalOptions="End" />
-                                </VerticalStackLayout>
+                                <Label Grid.Column="2" Grid.RowSpan="2"
+                                       Text="→"
+                                       FontSize="24"
+                                       TextColor="{StaticResource Primary}"
+                                       VerticalOptions="Center"
+                                       HorizontalOptions="End" />
 
                             </Grid>
                         </Frame>
@@ -84,7 +107,7 @@
             </CollectionView>
         </RefreshView>
 
-        <Label Grid.Row="1"
+        <Label Grid.Row="2"
                Text="{Binding ErrorMessage}"
                TextColor="Red"
                IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}"
