@@ -365,4 +365,3 @@ FodyWeavers.xsd
 # SQLite WAL mode temporary files
 *.db-shm
 *.db-wal
-README.md
