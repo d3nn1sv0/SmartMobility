@@ -21,6 +21,21 @@ builder.Services.AddControllers()
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()
     ?? throw new InvalidOperationException("JwtSettings not configured");
+
+var envSecret = Environment.GetEnvironmentVariable("JWT_SECRET");
+if (!string.IsNullOrEmpty(envSecret))
+{
+    jwtSettings.Secret = envSecret;
+}
+
+if (string.IsNullOrEmpty(jwtSettings.Secret) || jwtSettings.Secret.Length < 32)
+{
+    throw new InvalidOperationException(
+        "JWT Secret must be at least 32 characters. " +
+        "Set it with 'dotnet user-secrets set \"JwtSettings:Secret\" \"your-secret-key\"' (development) " +
+        "or as environment variable JWT_SECRET (production).");
+}
+
 builder.Services.AddSingleton(jwtSettings);
 
 builder.Services.AddAuthentication(options =>
@@ -118,6 +133,32 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<SmartMobilityDbContext>();
+    context.Database.EnsureCreated();
+
+    if (!context.Users.Any(u => u.Role == SmartMobility.Models.Enums.UserRole.Admin))
+    {
+        var admin = new SmartMobility.Models.Entities.User
+        {
+            Email = "admin@smartmobility.dk",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
+            Name = "Administrator",
+            Role = SmartMobility.Models.Enums.UserRole.Admin,
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Users.Add(admin);
+        context.SaveChanges();
+
+        Console.WriteLine("===========================================");
+        Console.WriteLine("Admin account created:");
+        Console.WriteLine("Email: admin@smartmobility.dk");
+        Console.WriteLine("Password: Admin123!");
+        Console.WriteLine("===========================================");
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartMobility.Data;
@@ -106,6 +107,7 @@ public class StopsController : ControllerBase
         return Ok(stops);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<ActionResult<StopDto>> CreateStop(CreateStopDto dto)
     {
@@ -132,6 +134,7 @@ public class StopsController : ControllerBase
         return CreatedAtAction(nameof(GetStop), new { id = stop.Id }, result);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateStop(int id, UpdateStopDto dto)
     {
@@ -152,6 +155,7 @@ public class StopsController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteStop(int id)
     {

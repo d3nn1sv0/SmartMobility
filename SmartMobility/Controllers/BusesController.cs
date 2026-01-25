@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartMobility.Data;
@@ -110,6 +111,7 @@ public class BusesController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<ActionResult<BusDto>> CreateBus(CreateBusDto dto)
     {
@@ -136,6 +138,7 @@ public class BusesController : ControllerBase
         return CreatedAtAction(nameof(GetBus), new { id = bus.Id }, result);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateBus(int id, UpdateBusDto dto)
     {
@@ -158,6 +161,7 @@ public class BusesController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteBus(int id)
     {

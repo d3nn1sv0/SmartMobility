@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartMobility.Data;
@@ -114,6 +115,7 @@ public class BusPositionsController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Driver,Admin")]
     [HttpPost]
     public async Task<ActionResult<BusPositionDto>> ReportPosition(CreateBusPositionDto dto)
     {

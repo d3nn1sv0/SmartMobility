@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartMobility.Data;
@@ -70,6 +71,7 @@ public class RoutesController : ControllerBase
         });
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<ActionResult<RouteDto>> CreateRoute(CreateRouteDto dto)
     {
@@ -96,6 +98,7 @@ public class RoutesController : ControllerBase
         return CreatedAtAction(nameof(GetRoute), new { id = route.Id }, result);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateRoute(int id, UpdateRouteDto dto)
     {
@@ -118,6 +121,7 @@ public class RoutesController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteRoute(int id)
     {
@@ -136,6 +140,7 @@ public class RoutesController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost("{id}/stops")]
     public async Task<IActionResult> AddStopToRoute(int id, AddStopToRouteDto dto)
     {
@@ -175,6 +180,7 @@ public class RoutesController : ControllerBase
         return Ok();
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}/stops/{stopId}")]
     public async Task<IActionResult> RemoveStopFromRoute(int id, int stopId)
     {
