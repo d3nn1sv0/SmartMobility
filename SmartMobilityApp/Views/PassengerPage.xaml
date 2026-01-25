@@ -22,7 +22,7 @@
         </Grid>
     </Shell.TitleView>
 
-    <Grid RowDefinitions="Auto,Auto,*">
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
 
         <VerticalStackLayout Grid.Row="0" Padding="15" BackgroundColor="{StaticResource Primary}">
             <Label Text="{Binding UserName, StringFormat='Velkommen, {0}'}"
@@ -30,7 +30,12 @@
                    FontSize="16" />
         </VerticalStackLayout>
 
-        <Frame Grid.Row="1"
+        <SearchBar Grid.Row="1"
+                   Placeholder="Søg ruter..."
+                   Text="{Binding SearchText}"
+                   Margin="10,10,10,0" />
+
+        <Frame Grid.Row="2"
                IsVisible="{Binding LatestNotification, Converter={StaticResource StringNotNullOrEmptyConverter}}"
                BackgroundColor="#E3F2FD"
                Padding="15"
@@ -50,13 +55,13 @@
             </Grid>
         </Frame>
 
-        <RefreshView Grid.Row="2"
+        <RefreshView Grid.Row="3"
                      IsRefreshing="{Binding IsRefreshing}"
                      Command="{Binding RefreshCommand}">
 
             <CollectionView x:Name="RouteCollection"
                             ItemsSource="{Binding Routes}"
-                            EmptyView="Ingen ruter fundet. Træk ned for at opdatere.">
+                            EmptyView="Ingen ruter matcher din søgning.">
 
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:RouteDto">
@@ -107,7 +112,7 @@
             </CollectionView>
         </RefreshView>
 
-        <Label Grid.Row="2"
+        <Label Grid.Row="3"
                Text="{Binding ErrorMessage}"
                TextColor="Red"
                IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}"

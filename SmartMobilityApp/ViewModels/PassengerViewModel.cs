@@ -12,8 +12,13 @@ public partial class PassengerViewModel : BaseViewModel
     private readonly IAuthService _authService;
     private readonly ISignalRService _signalRService;
 
+    private List<RouteDto> _allRoutes = new();
+
     [ObservableProperty]
     private ObservableCollection<RouteDto> _routes = new();
+
+    [ObservableProperty]
+    private string? _searchText;
 
     [ObservableProperty]
     private bool _isRefreshing;
@@ -57,6 +62,28 @@ public partial class PassengerViewModel : BaseViewModel
         IsConnected = state == "Connected";
     }
 
+    partial void OnSearchTextChanged(string? value)
+    {
+        FilterRoutes(value);
+    }
+
+    private void FilterRoutes(string? searchText)
+    {
+        Routes.Clear();
+
+        var filtered = string.IsNullOrWhiteSpace(searchText)
+            ? _allRoutes
+            : _allRoutes.Where(r =>
+                (r.RouteNumber?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (r.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (r.Description?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false));
+
+        foreach (var route in filtered)
+        {
+            Routes.Add(route);
+        }
+    }
+
     [RelayCommand]
     private async Task InitializeAsync()
     {
@@ -78,15 +105,14 @@ public partial class PassengerViewModel : BaseViewModel
 
             var routes = await _apiService.GetAsync<List<RouteDto>>("routes");
 
-            Routes.Clear();
+            _allRoutes.Clear();
 
             if (routes != null)
             {
-                foreach (var route in routes.Where(r => r.IsActive))
-                {
-                    Routes.Add(route);
-                }
+                _allRoutes = routes.Where(r => r.IsActive).ToList();
             }
+
+            FilterRoutes(SearchText);
         }
         catch (Exception ex)
         {

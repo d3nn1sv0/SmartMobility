@@ -15,21 +15,30 @@ public class GpsTrackingService : IGpsTrackingService
     private static readonly ConcurrentDictionary<string, DateTime> NotifiedStops = new();
     private static readonly TimeSpan NotificationCooldown = TimeSpan.FromMinutes(5);
 
+    private static readonly ConcurrentDictionary<int, CachedBusInfo> BusCache = new();
+    private static readonly TimeSpan CacheExpiry = TimeSpan.FromMinutes(5);
+
     public GpsTrackingService(SmartMobilityDbContext context, IEtaService etaService)
     {
         _context = context;
         _etaService = etaService;
     }
 
+    public static void InvalidateBusCache(int busId)
+    {
+        BusCache.TryRemove(busId, out _);
+    }
+
+    public static void InvalidateAllBusCache()
+    {
+        BusCache.Clear();
+    }
+
     public async Task<GpsProcessingResult?> ProcessGpsUpdateAsync(int busId, GpsUpdateDto update)
     {
-        var bus = await _context.Buses
-            .Include(b => b.CurrentRoute)
-                .ThenInclude(r => r!.RouteStops)
-                    .ThenInclude(rs => rs.Stop)
-            .FirstOrDefaultAsync(b => b.Id == busId);
+        var cachedBus = await GetOrLoadBusAsync(busId);
 
-        if (bus == null)
+        if (cachedBus == null)
             return null;
 
         var position = new BusPosition
@@ -47,10 +56,10 @@ public class GpsTrackingService : IGpsTrackingService
 
         var positionUpdate = new BusPositionUpdateDto
         {
-            BusId = bus.Id,
-            BusNumber = bus.BusNumber,
-            RouteId = bus.CurrentRouteId,
-            RouteName = bus.CurrentRoute?.Name,
+            BusId = cachedBus.BusId,
+            BusNumber = cachedBus.BusNumber,
+            RouteId = cachedBus.CurrentRouteId,
+            RouteName = cachedBus.RouteName,
             Latitude = position.Latitude,
             Longitude = position.Longitude,
             Speed = position.Speed,
@@ -63,9 +72,9 @@ public class GpsTrackingService : IGpsTrackingService
             PositionUpdate = positionUpdate
         };
 
-        if (bus.CurrentRoute?.RouteStops != null)
+        if (cachedBus.RouteStops.Count > 0)
         {
-            var notification = CheckForApproachingStop(bus, update.Latitude, update.Longitude);
+            var notification = CheckForApproachingStop(cachedBus, update.Latitude, update.Longitude);
             if (notification != null)
             {
                 result.NextStopNotification = notification;
@@ -75,22 +84,60 @@ public class GpsTrackingService : IGpsTrackingService
         return result;
     }
 
-    private NextStopNotificationDto? CheckForApproachingStop(Bus bus, double busLat, double busLon)
+    private async Task<CachedBusInfo?> GetOrLoadBusAsync(int busId)
     {
-        if (bus.CurrentRoute?.RouteStops == null || !bus.CurrentRoute.RouteStops.Any())
+        if (BusCache.TryGetValue(busId, out var cached) && DateTime.UtcNow - cached.LoadedAt < CacheExpiry)
+        {
+            return cached;
+        }
+
+        var bus = await _context.Buses
+            .Include(b => b.CurrentRoute)
+                .ThenInclude(r => r!.RouteStops)
+                    .ThenInclude(rs => rs.Stop)
+            .FirstOrDefaultAsync(b => b.Id == busId);
+
+        if (bus == null)
             return null;
 
-        var routeStops = bus.CurrentRoute.RouteStops.OrderBy(rs => rs.StopOrder).ToList();
+        var busInfo = new CachedBusInfo
+        {
+            BusId = bus.Id,
+            BusNumber = bus.BusNumber,
+            CurrentRouteId = bus.CurrentRouteId,
+            RouteName = bus.CurrentRoute?.Name,
+            RouteStops = bus.CurrentRoute?.RouteStops?
+                .OrderBy(rs => rs.StopOrder)
+                .Select(rs => new CachedRouteStop
+                {
+                    StopId = rs.StopId,
+                    StopName = rs.Stop.Name,
+                    Latitude = rs.Stop.Latitude,
+                    Longitude = rs.Stop.Longitude,
+                    StopOrder = rs.StopOrder
+                })
+                .ToList() ?? new List<CachedRouteStop>(),
+            LoadedAt = DateTime.UtcNow
+        };
 
-        foreach (var routeStop in routeStops)
+        BusCache[busId] = busInfo;
+        return busInfo;
+    }
+
+    private NextStopNotificationDto? CheckForApproachingStop(CachedBusInfo bus, double busLat, double busLon)
+    {
+        if (bus.RouteStops.Count == 0)
+            return null;
+
+        foreach (var routeStop in bus.RouteStops)
         {
             var distance = _etaService.CalculateDistanceMeters(
                 busLat, busLon,
-                routeStop.Stop.Latitude, routeStop.Stop.Longitude);
+                routeStop.Latitude, routeStop.Longitude);
 
             if (distance <= NotificationDistanceMeters)
             {
-                var notificationKey = $"{bus.Id}-{routeStop.StopId}";
+                var notificationKey = $"{bus.BusId}-{routeStop.StopId}";
 
                 if (NotifiedStops.TryGetValue(notificationKey, out var lastNotified))
                 {
@@ -108,10 +155,10 @@ public class GpsTrackingService : IGpsTrackingService
 
                 return new NextStopNotificationDto
                 {
-                    BusId = bus.Id,
+                    BusId = bus.BusId,
                     BusNumber = bus.BusNumber,
                     StopId = routeStop.StopId,
-                    StopName = routeStop.Stop.Name,
+                    StopName = routeStop.StopName,
                     EstimatedSeconds = estimatedSeconds,
                     DistanceMeters = distance
                 };
@@ -133,5 +180,24 @@ public class GpsTrackingService : IGpsTrackingService
         {
             NotifiedStops.TryRemove(key, out _);
         }
+    }
+
+    private class CachedBusInfo
+    {
+        public int BusId { get; set; }
+        public string BusNumber { get; set; } = string.Empty;
+        public int? CurrentRouteId { get; set; }
+        public string? RouteName { get; set; }
+        public List<CachedRouteStop> RouteStops { get; set; } = new();
+        public DateTime LoadedAt { get; set; }
+    }
+
+    private class CachedRouteStop
+    {
+        public int StopId { get; set; }
+        public string StopName { get; set; } = string.Empty;
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public int StopOrder { get; set; }
     }
 }

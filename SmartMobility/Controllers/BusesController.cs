@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartMobility.Data;
 using SmartMobility.DTOs;
 using SmartMobility.Models.Entities;
+using SmartMobility.Services;
 
 namespace SmartMobility.Controllers;
 
@@ -152,6 +153,8 @@ public class BusesController : ControllerBase
 
         await _context.SaveChangesAsync();
 
+        GpsTrackingService.InvalidateBusCache(id);
+
         return NoContent();
     }
 
@@ -167,6 +170,8 @@ public class BusesController : ControllerBase
 
         _context.Buses.Remove(bus);
         await _context.SaveChangesAsync();
+
+        GpsTrackingService.InvalidateBusCache(id);
 
         return NoContent();
     }
