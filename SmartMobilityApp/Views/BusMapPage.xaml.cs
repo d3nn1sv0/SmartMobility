@@ -4,7 +4,6 @@ using Mapsui.Layers;
 using Mapsui.Projections;
 using Mapsui.Styles;
 using Mapsui.Tiling;
-using SmartMobilityApp.ViewModels;
 
 namespace SmartMobilityApp.Views;
 
@@ -94,7 +93,7 @@ public partial class BusMapPage : ContentPage
         var features = new List<PointFeature>();
         MPoint? firstPoint = null;
 
-        foreach (var bus in _viewModel.BusesOnRoute)
+        foreach (var bus in _viewModel.AnimationService.Buses)
         {
             var sphericalCoord = SphericalMercator.FromLonLat(bus.Longitude, bus.Latitude);
             var point = new MPoint(sphericalCoord.x, sphericalCoord.y);

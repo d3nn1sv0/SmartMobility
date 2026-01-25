@@ -64,4 +64,18 @@ public class AuthController : ControllerBase
 
         return Ok(user);
     }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPut("users/role")]
+    public async Task<ActionResult> UpdateUserRole(UpdateUserRoleDto dto)
+    {
+        var success = await _authService.UpdateUserRoleAsync(dto.UserId, dto.NewRole);
+
+        if (!success)
+        {
+            return NotFound(new { Error = "Bruger ikke fundet" });
+        }
+
+        return Ok(new { Message = "Brugerrolle opdateret" });
+    }
 }

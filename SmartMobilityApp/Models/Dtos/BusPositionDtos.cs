@@ -1,4 +1,4 @@
-namespace SmartMobilityApp.Models;
+namespace SmartMobilityApp.Models.Dtos;
 
 public class BusPositionDto
 {

@@ -1,4 +1,4 @@
-using SmartMobilityApp.Models;
+using SmartMobilityApp.Services.Interfaces;
 
 namespace SmartMobilityApp.Services;
 
@@ -25,6 +25,37 @@ public class AuthService : IAuthService
         };
 
         var response = await _apiService.PostAsync<LoginDto, AuthResponseDto>("auth/login", loginDto);
+
+        if (response == null)
+        {
+            return new AuthResponseDto
+            {
+                Success = false,
+                Error = "Kunne ikke forbinde til serveren"
+            };
+        }
+
+        if (response.Success && response.Token != null && response.User != null)
+        {
+            await SecureStorage.SetAsync(TokenKey, response.Token);
+            await SecureStorage.SetAsync(UserIdKey, response.User.Id.ToString());
+            _apiService.SetAuthToken(response.Token);
+            CurrentUser = response.User;
+        }
+
+        return response;
+    }
+
+    public async Task<AuthResponseDto> RegisterAsync(string email, string password, string? name)
+    {
+        var registerDto = new RegisterDto
+        {
+            Email = email,
+            Password = password,
+            Name = name
+        };
+
+        var response = await _apiService.PostAsync<RegisterDto, AuthResponseDto>("auth/register", registerDto);
 
         if (response == null)
         {

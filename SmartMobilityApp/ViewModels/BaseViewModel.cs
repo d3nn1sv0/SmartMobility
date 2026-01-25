@@ -1,5 +1,3 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-
 namespace SmartMobilityApp.ViewModels;
 
 public partial class BaseViewModel : ObservableObject

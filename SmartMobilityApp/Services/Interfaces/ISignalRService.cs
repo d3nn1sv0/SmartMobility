@@ -1,6 +1,4 @@
-using SmartMobilityApp.Models;
-
-namespace SmartMobilityApp.Services;
+namespace SmartMobilityApp.Services.Interfaces;
 
 public interface ISignalRService
 {

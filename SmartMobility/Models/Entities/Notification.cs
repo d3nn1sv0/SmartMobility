@@ -1,14 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using SmartMobility.Models.Enums;
 
 namespace SmartMobility.Models.Entities;
-
-public enum NotificationType
-{
-    General,
-    Delay,
-    Cancellation,
-    NextStop
-}
 
 public class Notification
 {

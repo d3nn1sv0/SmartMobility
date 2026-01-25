@@ -1,11 +1,9 @@
-using Microsoft.AspNetCore.SignalR.Client;
-using SmartMobilityApp.Models;
+using SmartMobilityApp.Services.Interfaces;
 
 namespace SmartMobilityApp.Services;
 
 public class SignalRService : ISignalRService, IAsyncDisposable
 {
-    private readonly IAuthService _authService;
     private HubConnection? _hubConnection;
     private const string HubUrl = "http://10.0.2.2:5174/hubs/gpstracking";
 
@@ -14,11 +12,6 @@ public class SignalRService : ISignalRService, IAsyncDisposable
     public event EventHandler<string>? ConnectionStateChanged;
 
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
-
-    public SignalRService(IAuthService authService)
-    {
-        _authService = authService;
-    }
 
     public async Task ConnectAsync()
     {

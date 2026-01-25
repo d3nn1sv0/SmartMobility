@@ -1,4 +1,4 @@
-namespace SmartMobilityApp.Models;
+namespace SmartMobilityApp.Models.Enums;
 
 public enum UserRole
 {

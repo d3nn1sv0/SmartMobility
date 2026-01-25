@@ -1,9 +1,3 @@
-using System.Collections.ObjectModel;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using SmartMobilityApp.Models;
-using SmartMobilityApp.Services;
-
 namespace SmartMobilityApp.ViewModels;
 
 [QueryProperty(nameof(Route), "Route")]
@@ -11,6 +5,7 @@ public partial class BusMapViewModel : BaseViewModel
 {
     private readonly IApiService _apiService;
     private readonly ISignalRService _signalRService;
+    private readonly BusAnimationService _animationService;
 
     [ObservableProperty]
     private RouteDto? _route;
@@ -44,13 +39,22 @@ public partial class BusMapViewModel : BaseViewModel
 
     public event EventHandler? BusPositionsUpdated;
 
+    public BusAnimationService AnimationService => _animationService;
+
     public BusMapViewModel(IApiService apiService, ISignalRService signalRService)
     {
         _apiService = apiService;
         _signalRService = signalRService;
+        _animationService = new BusAnimationService();
 
         _signalRService.BusPositionUpdated += OnBusPositionUpdated;
         _signalRService.NextStopApproaching += OnNextStopApproaching;
+        _animationService.PositionsUpdated += OnAnimationUpdated;
+    }
+
+    private void OnAnimationUpdated(object? sender, EventArgs e)
+    {
+        BusPositionsUpdated?.Invoke(this, EventArgs.Empty);
     }
 
     private void OnBusPositionUpdated(object? sender, BusPositionUpdateDto position)
@@ -63,23 +67,18 @@ public partial class BusMapViewModel : BaseViewModel
 
         if (isOnThisRoute)
         {
+            _animationService.UpdateTargetPosition(
+                position.BusId,
+                position.BusNumber,
+                position.RouteName,
+                position.Latitude,
+                position.Longitude,
+                position.Speed,
+                position.Heading,
+                position.Timestamp);
+
             var existing = BusesOnRoute.FirstOrDefault(b => b.BusId == position.BusId);
-            if (existing != null)
-            {
-                var index = BusesOnRoute.IndexOf(existing);
-                BusesOnRoute[index] = new BusLocationDto
-                {
-                    BusId = position.BusId,
-                    BusNumber = position.BusNumber,
-                    RouteName = position.RouteName,
-                    Latitude = position.Latitude,
-                    Longitude = position.Longitude,
-                    Speed = position.Speed,
-                    Heading = position.Heading,
-                    Timestamp = position.Timestamp
-                };
-            }
-            else
+            if (existing == null)
             {
                 BusesOnRoute.Add(new BusLocationDto
                 {
@@ -92,9 +91,8 @@ public partial class BusMapViewModel : BaseViewModel
                     Heading = position.Heading,
                     Timestamp = position.Timestamp
                 });
+                HasBusData = true;
             }
-
-            BusPositionsUpdated?.Invoke(this, EventArgs.Empty);
 
             if (SelectedBus != null && SelectedBus.BusId == position.BusId)
             {
@@ -138,6 +136,8 @@ public partial class BusMapViewModel : BaseViewModel
     private async Task InitializeAsync()
     {
         if (Route == null) return;
+
+        _animationService.Start();
 
         if (!_signalRService.IsConnected)
         {
@@ -189,12 +189,22 @@ public partial class BusMapViewModel : BaseViewModel
             var allBuses = await _apiService.GetAsync<List<BusLocationDto>>("buspositions/all/latest");
 
             BusesOnRoute.Clear();
+            _animationService.Clear();
 
             if (allBuses != null)
             {
                 foreach (var bus in allBuses.Where(b => b.RouteName == Route.Name))
                 {
                     BusesOnRoute.Add(bus);
+                    _animationService.UpdateTargetPosition(
+                        bus.BusId,
+                        bus.BusNumber,
+                        bus.RouteName,
+                        bus.Latitude,
+                        bus.Longitude,
+                        bus.Speed,
+                        bus.Heading,
+                        bus.Timestamp);
                 }
             }
 
@@ -272,6 +282,7 @@ public partial class BusMapViewModel : BaseViewModel
     [RelayCommand]
     private async Task GoBackAsync()
     {
+        _animationService.Stop();
         await _signalRService.UnsubscribeFromAllBusesAsync();
         await Shell.Current.GoToAsync("..");
     }

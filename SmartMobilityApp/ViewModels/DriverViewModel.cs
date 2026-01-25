@@ -1,10 +1,3 @@
-using System.Collections.ObjectModel;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Microsoft.AspNetCore.SignalR.Client;
-using SmartMobilityApp.Models;
-using SmartMobilityApp.Services;
-
 namespace SmartMobilityApp.ViewModels;
 
 public partial class DriverViewModel : BaseViewModel

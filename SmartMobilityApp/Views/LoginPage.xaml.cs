@@ -1,5 +1,3 @@
-using SmartMobilityApp.ViewModels;
-
 namespace SmartMobilityApp.Views;
 
 public partial class LoginPage : ContentPage

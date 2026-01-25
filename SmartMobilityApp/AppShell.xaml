@@ -13,6 +13,11 @@
         Route="LoginPage" />
 
     <ShellContent
+        Title="Opret konto"
+        ContentTemplate="{DataTemplate views:RegisterPage}"
+        Route="RegisterPage" />
+
+    <ShellContent
         Title="Buspositioner"
         ContentTemplate="{DataTemplate views:PassengerPage}"
         Route="PassengerPage" />

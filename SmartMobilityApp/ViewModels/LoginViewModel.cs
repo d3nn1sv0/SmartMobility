@@ -1,8 +1,3 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using SmartMobilityApp.Models;
-using SmartMobilityApp.Services;
-
 namespace SmartMobilityApp.ViewModels;
 
 public partial class LoginViewModel : BaseViewModel
@@ -66,6 +61,12 @@ public partial class LoginViewModel : BaseViewModel
                 await NavigateToRolePage(_authService.CurrentUser.Role);
             }
         }
+    }
+
+    [RelayCommand]
+    private static async Task GoToRegisterAsync()
+    {
+        await Shell.Current.GoToAsync("//RegisterPage");
     }
 
     private static async Task NavigateToRolePage(UserRole role)

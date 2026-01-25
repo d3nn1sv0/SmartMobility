@@ -2,9 +2,9 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:SmartMobilityApp.ViewModels"
-             x:Class="SmartMobilityApp.Views.LoginPage"
-             x:DataType="viewmodels:LoginViewModel"
-             Title="Login"
+             x:Class="SmartMobilityApp.Views.RegisterPage"
+             x:DataType="viewmodels:RegisterViewModel"
+             Title="Opret konto"
              Shell.NavBarIsVisible="False">
 
     <ScrollView>
@@ -16,10 +16,16 @@
                    HorizontalOptions="Center"
                    TextColor="{StaticResource Primary}" />
 
-            <Label Text="Log ind for at fortsætte"
+            <Label Text="Opret en ny konto"
                    FontSize="16"
                    HorizontalOptions="Center"
                    TextColor="Gray" />
+
+            <VerticalStackLayout Spacing="5">
+                <Label Text="Navn (valgfrit)" FontSize="14" />
+                <Entry Text="{Binding Name}"
+                       Placeholder="Dit navn" />
+            </VerticalStackLayout>
 
             <VerticalStackLayout Spacing="5">
                 <Label Text="Email" FontSize="14" />
@@ -31,7 +37,14 @@
             <VerticalStackLayout Spacing="5">
                 <Label Text="Adgangskode" FontSize="14" />
                 <Entry Text="{Binding Password}"
-                       Placeholder="Adgangskode"
+                       Placeholder="Mindst 6 tegn"
+                       IsPassword="True" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="5">
+                <Label Text="Bekræft adgangskode" FontSize="14" />
+                <Entry Text="{Binding ConfirmPassword}"
+                       Placeholder="Gentag adgangskode"
                        IsPassword="True" />
             </VerticalStackLayout>
 
@@ -40,8 +53,8 @@
                    IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyConverter}}"
                    HorizontalOptions="Center" />
 
-            <Button Text="Log ind"
-                    Command="{Binding LoginCommand}"
+            <Button Text="Opret konto"
+                    Command="{Binding RegisterCommand}"
                     IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
                     HeightRequest="50" />
 
@@ -50,11 +63,11 @@
                                HorizontalOptions="Center" />
 
             <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
-                <Label Text="Har du ikke en konto?"
+                <Label Text="Har du allerede en konto?"
                        VerticalOptions="Center"
                        TextColor="Gray" />
-                <Button Text="Opret konto"
-                        Command="{Binding GoToRegisterCommand}"
+                <Button Text="Log ind"
+                        Command="{Binding GoToLoginCommand}"
                         BackgroundColor="Transparent"
                         TextColor="{StaticResource Primary}"
                         Padding="0" />

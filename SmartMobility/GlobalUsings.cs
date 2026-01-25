@@ -1,0 +1,12 @@
+global using Microsoft.AspNetCore.Authorization;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.EntityFrameworkCore;
+global using System.ComponentModel.DataAnnotations;
+global using System.Security.Claims;
+global using SmartMobility.Configuration;
+global using SmartMobility.Data;
+global using SmartMobility.DTOs;
+global using SmartMobility.Models.Entities;
+global using SmartMobility.Models.Enums;
+global using SmartMobility.Repositories.Interfaces;
+global using SmartMobility.Services.Interfaces;

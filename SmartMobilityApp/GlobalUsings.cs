@@ -1,0 +1,10 @@
+global using CommunityToolkit.Mvvm.ComponentModel;
+global using CommunityToolkit.Mvvm.Input;
+global using Microsoft.AspNetCore.SignalR.Client;
+global using System.Collections.ObjectModel;
+global using SmartMobilityApp.Models.Dtos;
+global using SmartMobilityApp.Models.Enums;
+global using SmartMobilityApp.Services;
+global using SmartMobilityApp.Services.Interfaces;
+global using SmartMobilityApp.ViewModels;
+global using SmartMobilityApp.Views;

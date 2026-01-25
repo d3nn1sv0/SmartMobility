@@ -1,15 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using SmartMobility.Models.Enums;
 
 namespace SmartMobility.Models.Entities;
-
-public enum BookingStatus
-{
-    Pending,
-    Confirmed,
-    InProgress,
-    Completed,
-    Cancelled
-}
 
 public class TaxiBooking
 {

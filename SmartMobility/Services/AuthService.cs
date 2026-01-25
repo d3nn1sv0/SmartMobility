@@ -7,6 +7,7 @@ using SmartMobility.Configuration;
 using SmartMobility.Data;
 using SmartMobility.DTOs;
 using SmartMobility.Models.Entities;
+using SmartMobility.Models.Enums;
 using SmartMobility.Services.Interfaces;
 
 namespace SmartMobility.Services;
@@ -39,7 +40,7 @@ public class AuthService : IAuthService
             Email = dto.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             Name = dto.Name,
-            Role = dto.Role,
+            Role = UserRole.User,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -97,6 +98,17 @@ public class AuthService : IAuthService
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         return user != null ? MapToUserDto(user) : null;
+    }
+
+    public async Task<bool> UpdateUserRoleAsync(int userId, UserRole newRole)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return false;
+
+        user.Role = newRole;
+        await _context.SaveChangesAsync();
+        return true;
     }
 
     private string GenerateJwtToken(User user)

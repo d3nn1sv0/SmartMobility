@@ -46,3 +46,9 @@ public class UserDto
     public UserRole Role { get; set; }
     public DateTime CreatedAt { get; set; }
 }
+
+public class UpdateUserRoleDto
+{
+    public int UserId { get; set; }
+    public UserRole NewRole { get; set; }
+}
