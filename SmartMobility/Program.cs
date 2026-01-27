@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -132,6 +134,65 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    {
+        var roleClaim = context.User?.FindFirst(ClaimTypes.Role)?.Value;
+
+        if (roleClaim == "Driver" || roleClaim == "Admin")
+        {
+            return RateLimitPartition.GetNoLimiter("unlimited");
+        }
+
+        if (roleClaim == "User")
+        {
+            var userId = context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                      ?? context.User?.FindFirst("sub")?.Value
+                      ?? "unknown";
+
+            return RateLimitPartition.GetFixedWindowLimiter($"user-{userId}", _ =>
+                new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 1000,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0
+                });
+        }
+
+        var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter($"ip-{clientIp}", _ =>
+            new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
+    });
+
+    options.AddPolicy("auth", context =>
+    {
+        var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter($"auth-{clientIp}", _ =>
+            new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
+    });
+
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync(
+            "{\"error\":\"For mange requests. Vent venligst og prøv igen.\"}",
+            token);
+    };
+});
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -174,6 +235,7 @@ app.UseHttpsRedirection();
 app.UseCors("SignalRPolicy");
 
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
