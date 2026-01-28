@@ -57,7 +57,26 @@ public class ApiService : IApiService
         try
         {
             var response = await _httpClient.PostAsJsonAsync(endpoint, data, _jsonOptions);
-            response.EnsureSuccessStatusCode();
+
+            if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            {
+                if (typeof(TResponse) == typeof(AuthResponseDto))
+                {
+                    return (TResponse)(object)new AuthResponseDto
+                    {
+                        Success = false,
+                        Error = "For mange forsøg. Prøv igen senere."
+                    };
+                }
+                return default;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadFromJsonAsync<TResponse>(_jsonOptions);
+                return content;
+            }
+
             return await response.Content.ReadFromJsonAsync<TResponse>(_jsonOptions);
         }
         catch (Exception ex)
