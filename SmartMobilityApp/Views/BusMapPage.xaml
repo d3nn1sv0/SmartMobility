@@ -114,6 +114,21 @@
 
         <mapsui:MapControl x:Name="MapControl" Grid.Row="2" />
 
+        <Button Grid.Row="2"
+                Text="⌖"
+                Command="{Binding CenterOnSelectedBusCommand}"
+                IsVisible="{Binding HasBusData}"
+                FontSize="24"
+                WidthRequest="50"
+                HeightRequest="50"
+                CornerRadius="25"
+                BackgroundColor="{StaticResource Primary}"
+                TextColor="White"
+                HorizontalOptions="End"
+                VerticalOptions="End"
+                Margin="0,0,15,15"
+                Shadow="{Shadow Brush=Black, Opacity=0.3, Offset='2,2', Radius=4}" />
+
         <Frame Grid.Row="3"
                IsVisible="{Binding HasEtaData}"
                Margin="10,5"

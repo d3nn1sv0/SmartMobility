@@ -38,6 +38,7 @@ public partial class BusMapViewModel : BaseViewModel
     private bool _hasBusData;
 
     public event EventHandler? BusPositionsUpdated;
+    public event EventHandler<BusLocationDto>? CenterOnBusRequested;
 
     public BusAnimationService AnimationService => _animationService;
 
@@ -285,5 +286,12 @@ public partial class BusMapViewModel : BaseViewModel
         _animationService.Stop();
         await _signalRService.UnsubscribeFromAllBusesAsync();
         await Shell.Current.GoToAsync("..");
+    }
+
+    [RelayCommand]
+    private void CenterOnSelectedBus()
+    {
+        if (SelectedBus == null) return;
+        CenterOnBusRequested?.Invoke(this, SelectedBus);
     }
 }

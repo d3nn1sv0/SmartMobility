@@ -19,6 +19,7 @@ public partial class BusMapPage : ContentPage
         InitializeComponent();
         BindingContext = _viewModel = viewModel;
         _viewModel.BusPositionsUpdated += OnBusPositionsUpdated;
+        _viewModel.CenterOnBusRequested += OnCenterOnBusRequested;
     }
 
     protected override async void OnAppearing()
@@ -34,6 +35,17 @@ public partial class BusMapPage : ContentPage
     {
         base.OnDisappearing();
         _viewModel.BusPositionsUpdated -= OnBusPositionsUpdated;
+        _viewModel.CenterOnBusRequested -= OnCenterOnBusRequested;
+    }
+
+    private void OnCenterOnBusRequested(object? sender, BusLocationDto bus)
+    {
+        var animatedBus = _viewModel.AnimationService.Buses.FirstOrDefault(b => b.BusId == bus.BusId);
+        if (animatedBus == null) return;
+
+        var sphericalCoord = SphericalMercator.FromLonLat(animatedBus.Longitude, animatedBus.Latitude);
+        var point = new MPoint(sphericalCoord.x, sphericalCoord.y);
+        MapControl.Map.Navigator.CenterOnAndZoomTo(point, MapControl.Map.Navigator.Resolutions[15]);
     }
 
     private void SetupMap()
