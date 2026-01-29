@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
+using SmartMobility.Configuration;
 using SmartMobility.Data;
 using SmartMobility.DTOs;
 using SmartMobility.Models.Entities;
@@ -11,12 +12,11 @@ public class GpsTrackingService : IGpsTrackingService
 {
     private readonly SmartMobilityDbContext _context;
     private readonly IEtaService _etaService;
-    private const double NotificationDistanceMeters = 100.0;
     private static readonly ConcurrentDictionary<string, DateTime> NotifiedStops = new();
-    private static readonly TimeSpan NotificationCooldown = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan NotificationCooldown = TimeSpan.FromMinutes(Constants.GpsTracking.NotificationCooldownMinutes);
 
     private static readonly ConcurrentDictionary<int, CachedBusInfo> BusCache = new();
-    private static readonly TimeSpan CacheExpiry = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan CacheExpiry = TimeSpan.FromMinutes(Constants.GpsTracking.CacheExpiryMinutes);
 
     public GpsTrackingService(SmartMobilityDbContext context, IEtaService etaService)
     {
@@ -135,7 +135,7 @@ public class GpsTrackingService : IGpsTrackingService
                 busLat, busLon,
                 routeStop.Latitude, routeStop.Longitude);
 
-            if (distance <= NotificationDistanceMeters)
+            if (distance <= Constants.GpsTracking.NotificationDistanceMeters)
             {
                 var notificationKey = $"{bus.BusId}-{routeStop.StopId}";
 
@@ -170,7 +170,7 @@ public class GpsTrackingService : IGpsTrackingService
 
     private static void CleanupOldNotifications()
     {
-        var cutoff = DateTime.UtcNow - TimeSpan.FromMinutes(30);
+        var cutoff = DateTime.UtcNow - TimeSpan.FromMinutes(Constants.GpsTracking.NotificationCleanupMinutes);
         var keysToRemove = NotifiedStops
             .Where(kvp => kvp.Value < cutoff)
             .Select(kvp => kvp.Key)

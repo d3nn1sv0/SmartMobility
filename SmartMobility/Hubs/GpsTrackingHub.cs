@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using SmartMobility.Configuration;
 using SmartMobility.DTOs;
 using SmartMobility.Models.Enums;
 using SmartMobility.Services.Interfaces;
@@ -91,7 +92,7 @@ public class GpsTrackingHub : Hub
             ClaimedBuses[busId] = connectionId;
         }
 
-        await Groups.AddToGroupAsync(connectionId, $"bus-{busId}");
+        await Groups.AddToGroupAsync(connectionId, $"{Constants.SignalRGroups.BusPrefix}{busId}");
 
         _logger.LogInformation("Driver went online: UserId={UserId}, ConnectionId={ConnectionId}, BusId={BusId}",
             userId, connectionId, busId);
@@ -121,7 +122,7 @@ public class GpsTrackingHub : Hub
 
         if (busId.HasValue)
         {
-            await Groups.RemoveFromGroupAsync(connectionId, $"bus-{busId.Value}");
+            await Groups.RemoveFromGroupAsync(connectionId, $"{Constants.SignalRGroups.BusPrefix}{busId.Value}");
             _logger.LogInformation("Driver went offline: UserId={UserId}, ConnectionId={ConnectionId}, BusId={BusId}",
                 userId, connectionId, busId.Value);
         }
@@ -172,13 +173,13 @@ public class GpsTrackingHub : Hub
             return;
         }
 
-        await Clients.Group($"subscribers-bus-{busId}").SendAsync("BusPositionUpdated", result.PositionUpdate);
-        await Clients.Group("subscribers-all").SendAsync("BusPositionUpdated", result.PositionUpdate);
+        await Clients.Group($"{Constants.SignalRGroups.SubscribersBusPrefix}{busId}").SendAsync("BusPositionUpdated", result.PositionUpdate);
+        await Clients.Group(Constants.SignalRGroups.SubscribersAll).SendAsync("BusPositionUpdated", result.PositionUpdate);
 
         if (result.NextStopNotification != null)
         {
-            await Clients.Group($"subscribers-bus-{busId}").SendAsync("NextStopApproaching", result.NextStopNotification);
-            await Clients.Group("subscribers-all").SendAsync("NextStopApproaching", result.NextStopNotification);
+            await Clients.Group($"{Constants.SignalRGroups.SubscribersBusPrefix}{busId}").SendAsync("NextStopApproaching", result.NextStopNotification);
+            await Clients.Group(Constants.SignalRGroups.SubscribersAll).SendAsync("NextStopApproaching", result.NextStopNotification);
 
             _logger.LogInformation("Next stop notification sent: BusId={BusId}, StopId={StopId}, StopName={StopName}",
                 busId, result.NextStopNotification.StopId, result.NextStopNotification.StopName);
@@ -191,7 +192,7 @@ public class GpsTrackingHub : Hub
     public async Task SubscribeToBus(int busId)
     {
         var connectionId = Context.ConnectionId;
-        await Groups.AddToGroupAsync(connectionId, $"subscribers-bus-{busId}");
+        await Groups.AddToGroupAsync(connectionId, $"{Constants.SignalRGroups.SubscribersBusPrefix}{busId}");
         _logger.LogInformation("Client subscribed to bus: UserId={UserId}, ConnectionId={ConnectionId}, BusId={BusId}",
             GetUserId(), connectionId, busId);
     }
@@ -199,7 +200,7 @@ public class GpsTrackingHub : Hub
     public async Task UnsubscribeFromBus(int busId)
     {
         var connectionId = Context.ConnectionId;
-        await Groups.RemoveFromGroupAsync(connectionId, $"subscribers-bus-{busId}");
+        await Groups.RemoveFromGroupAsync(connectionId, $"{Constants.SignalRGroups.SubscribersBusPrefix}{busId}");
         _logger.LogInformation("Client unsubscribed from bus: UserId={UserId}, ConnectionId={ConnectionId}, BusId={BusId}",
             GetUserId(), connectionId, busId);
     }
@@ -207,7 +208,7 @@ public class GpsTrackingHub : Hub
     public async Task SubscribeToAllBuses()
     {
         var connectionId = Context.ConnectionId;
-        await Groups.AddToGroupAsync(connectionId, "subscribers-all");
+        await Groups.AddToGroupAsync(connectionId, Constants.SignalRGroups.SubscribersAll);
         _logger.LogInformation("Client subscribed to all buses: UserId={UserId}, ConnectionId={ConnectionId}",
             GetUserId(), connectionId);
     }
@@ -215,7 +216,7 @@ public class GpsTrackingHub : Hub
     public async Task UnsubscribeFromAllBuses()
     {
         var connectionId = Context.ConnectionId;
-        await Groups.RemoveFromGroupAsync(connectionId, "subscribers-all");
+        await Groups.RemoveFromGroupAsync(connectionId, Constants.SignalRGroups.SubscribersAll);
         _logger.LogInformation("Client unsubscribed from all buses: UserId={UserId}, ConnectionId={ConnectionId}",
             GetUserId(), connectionId);
     }

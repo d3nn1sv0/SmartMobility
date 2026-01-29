@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SmartMobility.Configuration;
+using static SmartMobility.Configuration.Constants;
 using SmartMobility.Data;
 using SmartMobility.Hubs;
 using SmartMobility.Repositories;
@@ -240,6 +241,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapHub<GpsTrackingHub>("/hubs/gpstracking");
+app.MapHub<GpsTrackingHub>(Constants.Routes.GpsTrackingHub);
 
 app.Run();
