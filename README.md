@@ -58,17 +58,19 @@ dotnet build -t:Run -f net9.0-android
 smartmobility/
 ├── SmartMobility/              # Backend Web API
 │   ├── Controllers/            # API endpoints
-│   ├── Services/               # Forretningslogik
+│   ├── Services/               # Forretningslogik (Auth, ETA, GpsTracking)
 │   ├── Repositories/           # Dataadgang
 │   ├── Models/                 # Entiteter og Enums
 │   ├── DTOs/                   # Data Transfer Objects
-│   ├── Hubs/                   # SignalR hub
+│   ├── Hubs/                   # SignalR hub (GpsTrackingHub)
+│   ├── Configuration/         # JWT og app konfiguration
 │   └── Data/                   # DbContext
 │
 ├── SmartMobilityApp/           # MAUI Mobile App
 │   ├── Views/                  # XAML sider
 │   ├── ViewModels/             # MVVM ViewModels
-│   ├── Services/               # API og SignalR klienter
+│   ├── Services/               # API, Auth, SignalR, BusAnimation
+│   ├── Converters/             # Value Converters
 │   └── Models/                 # DTOs og Enums
 ```
 
@@ -93,8 +95,19 @@ Se fuld API dokumentation i Swagger UI.
 | Driver | GPS-tracking, vælg bus, gå online/offline |
 | Admin | Administrer ruter, send notifikationer, tildel roller |
 
+## App Sider
+
+| Side | Beskrivelse |
+|------|-------------|
+| LoginPage | Brugerlogin med JWT |
+| RegisterPage | Opret ny brugerkonto |
+| PassengerPage | Oversigt over ruter |
+| BusMapPage | Kort med buspositioner, ETA og notifikationer |
+| DriverPage | Chauffør GPS-tracking med bus-valg |
+
 ## Udviklet til
 
 Dette projekt er udviklet som svendeprøve-opgave med fokus på:
 - SignalR realtidskommunikation
 - JWT authentication og sikkerhed
+- Repository og MVVM patterns
