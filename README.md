@@ -63,7 +63,7 @@ smartmobility/
 │   ├── Models/                 # Entiteter og Enums
 │   ├── DTOs/                   # Data Transfer Objects
 │   ├── Hubs/                   # SignalR hub (GpsTrackingHub)
-│   ├── Configuration/         # JWT og app konfiguration
+│   ├── Configuration/          # JWT og app konfiguration
 │   └── Data/                   # DbContext
 │
 ├── SmartMobilityApp/           # MAUI Mobile App
