@@ -1,5 +1,3 @@
-using SmartMobility.DTOs;
-
 namespace SmartMobility.Services.Interfaces;
 
 public interface IEtaService

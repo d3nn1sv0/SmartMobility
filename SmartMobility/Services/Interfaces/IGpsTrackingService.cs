@@ -1,5 +1,3 @@
-using SmartMobility.DTOs;
-
 namespace SmartMobility.Services.Interfaces;
 
 public class GpsProcessingResult
@@ -10,5 +8,7 @@ public class GpsProcessingResult
 
 public interface IGpsTrackingService
 {
-    Task<GpsProcessingResult?> ProcessGpsUpdateAsync(int busId, GpsUpdateDto update);
+    Task<GpsProcessingResult?> CreatePositionUpdateAsync(int busId, GpsUpdateDto update);
+
+    void SavePositionInBackground(int busId, GpsUpdateDto update);
 }

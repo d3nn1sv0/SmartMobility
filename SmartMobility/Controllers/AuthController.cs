@@ -1,9 +1,4 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using SmartMobility.DTOs;
-using SmartMobility.Services.Interfaces;
 
 namespace SmartMobility.Controllers;
 

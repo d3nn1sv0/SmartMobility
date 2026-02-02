@@ -1,14 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using SmartMobility.Configuration;
-using SmartMobility.Data;
-using SmartMobility.DTOs;
-using SmartMobility.Models.Entities;
-using SmartMobility.Models.Enums;
-using SmartMobility.Services.Interfaces;
 
 namespace SmartMobility.Services;
 

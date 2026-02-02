@@ -1,8 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using SmartMobility.Data;
-using SmartMobility.DTOs;
-using SmartMobility.Services.Interfaces;
-
 namespace SmartMobility.Services;
 
 public class EtaService : IEtaService

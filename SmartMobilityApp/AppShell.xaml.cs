@@ -1,5 +1,3 @@
-using SmartMobilityApp.Views;
-
 namespace SmartMobilityApp;
 
 public partial class AppShell : Shell

@@ -1,6 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-using SmartMobility.Models.Enums;
-
 namespace SmartMobility.DTOs;
 
 public class RegisterDto

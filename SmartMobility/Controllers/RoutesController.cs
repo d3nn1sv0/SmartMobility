@@ -1,9 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SmartMobility.Data;
-using SmartMobility.DTOs;
-using SmartMobility.Models.Entities;
 using SmartMobility.Services;
 
 namespace SmartMobility.Controllers;

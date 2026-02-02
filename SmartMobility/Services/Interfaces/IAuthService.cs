@@ -1,6 +1,3 @@
-using SmartMobility.DTOs;
-using SmartMobility.Models.Enums;
-
 namespace SmartMobility.Services.Interfaces;
 
 public interface IAuthService

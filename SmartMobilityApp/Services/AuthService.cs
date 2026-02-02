@@ -1,5 +1,3 @@
-using SmartMobilityApp.Services.Interfaces;
-
 namespace SmartMobilityApp.Services;
 
 public class AuthService : IAuthService

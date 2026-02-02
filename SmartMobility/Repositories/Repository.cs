@@ -1,7 +1,4 @@
 using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore;
-using SmartMobility.Data;
-using SmartMobility.Repositories.Interfaces;
 
 namespace SmartMobility.Repositories;
 

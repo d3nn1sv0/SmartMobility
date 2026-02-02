@@ -1,6 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-using SmartMobility.Models.Enums;
-
 namespace SmartMobility.Models.Entities;
 
 public class Notification

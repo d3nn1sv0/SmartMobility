@@ -1,10 +1,4 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using SmartMobility.Configuration;
-using SmartMobility.DTOs;
-using SmartMobility.Models.Enums;
-using SmartMobility.Services.Interfaces;
 
 namespace SmartMobility.Hubs;
 
@@ -161,7 +155,7 @@ public class GpsTrackingHub : Hub
             Heading = heading
         };
 
-        var result = await _gpsTrackingService.ProcessGpsUpdateAsync(busId, update);
+        var result = await _gpsTrackingService.CreatePositionUpdateAsync(busId, update);
 
         if (result?.PositionUpdate == null)
         {
@@ -184,6 +178,8 @@ public class GpsTrackingHub : Hub
             _logger.LogInformation("Next stop notification sent: BusId={BusId}, StopId={StopId}, StopName={StopName}",
                 busId, result.NextStopNotification.StopId, result.NextStopNotification.StopName);
         }
+
+        _gpsTrackingService.SavePositionInBackground(busId, update);
 
         _logger.LogDebug("GPS update processed: UserId={UserId}, BusId={BusId}, Lat={Lat}, Lng={Lng}",
             userId, busId, latitude, longitude);

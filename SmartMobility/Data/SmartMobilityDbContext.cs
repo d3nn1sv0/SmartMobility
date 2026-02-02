@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using SmartMobility.Models.Entities;
 using Route = SmartMobility.Models.Entities.Route;
 
 namespace SmartMobility.Data;

@@ -1,11 +1,8 @@
-using SmartMobilityApp.Services.Interfaces;
-
 namespace SmartMobilityApp.Services;
 
 public class SignalRService : ISignalRService, IAsyncDisposable
 {
     private HubConnection? _hubConnection;
-    private const string HubUrl = "http://10.0.2.2:5174/hubs/gpstracking";
 
     public event EventHandler<NextStopNotificationDto>? NextStopApproaching;
     public event EventHandler<BusPositionUpdateDto>? BusPositionUpdated;
@@ -28,7 +25,7 @@ public class SignalRService : ISignalRService, IAsyncDisposable
         }
 
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl(HubUrl, options =>
+            .WithUrl(Configuration.Constants.Api.HubUrl, options =>
             {
                 options.AccessTokenProvider = () => Task.FromResult<string?>(token);
             })

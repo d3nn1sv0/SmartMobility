@@ -5,8 +5,6 @@ public partial class DriverViewModel : BaseViewModel
     private readonly IApiService _apiService;
     private readonly IAuthService _authService;
     private HubConnection? _hubConnection;
-    private CancellationTokenSource? _trackingCts;
-    private const string HubUrl = "http://10.0.2.2:5174/hubs/gpstracking";
 
     [ObservableProperty]
     private bool _isTracking;
@@ -132,7 +130,7 @@ public partial class DriverViewModel : BaseViewModel
             }
 
             _hubConnection = new HubConnectionBuilder()
-                .WithUrl(HubUrl, options =>
+                .WithUrl(Configuration.Constants.Api.HubUrl, options =>
                 {
                     options.AccessTokenProvider = () => Task.FromResult<string?>(token);
                 })
@@ -162,8 +160,7 @@ public partial class DriverViewModel : BaseViewModel
             StatusText = $"Tracking aktiv - Bus {SelectedBus.BusNumber}";
             ErrorMessage = null;
 
-            _trackingCts = new CancellationTokenSource();
-            _ = TrackingLoopAsync(_trackingCts.Token);
+            await StartLocationListeningAsync();
         }
         catch (Exception ex)
         {
@@ -175,9 +172,7 @@ public partial class DriverViewModel : BaseViewModel
 
     private async Task StopTrackingAsync()
     {
-        _trackingCts?.Cancel();
-        _trackingCts?.Dispose();
-        _trackingCts = null;
+        StopLocationListening();
 
         if (_hubConnection != null)
         {
@@ -198,52 +193,58 @@ public partial class DriverViewModel : BaseViewModel
         StatusText = "Tracking stoppet";
     }
 
-    private async Task TrackingLoopAsync(CancellationToken cancellationToken)
+    private async Task StartLocationListeningAsync()
     {
-        while (!cancellationToken.IsCancellationRequested)
+        Geolocation.LocationChanged += OnLocationChanged;
+
+        var success = await Geolocation.StartListeningForegroundAsync(new GeolocationListeningRequest
         {
+            DesiredAccuracy = GeolocationAccuracy.Best,
+            MinimumTime = TimeSpan.FromMilliseconds(Configuration.Constants.Geolocation.MinimumTimeMs)
+        });
+
+        if (!success)
+        {
+            ErrorMessage = "Kunne ikke starte GPS listening";
+        }
+    }
+
+    private async void OnLocationChanged(object? sender, GeolocationLocationChangedEventArgs e)
+    {
+        var location = e.Location;
+
+        if (location != null && SelectedBus != null && _hubConnection?.State == HubConnectionState.Connected)
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                CurrentLatitude = location.Latitude;
+                CurrentLongitude = location.Longitude;
+                CurrentSpeed = location.Speed;
+                StatusText = $"Bus {SelectedBus.BusNumber} - Sendt: {DateTime.Now:HH:mm:ss}";
+            });
+
             try
             {
-                var location = await Geolocation.GetLocationAsync(new GeolocationRequest
-                {
-                    DesiredAccuracy = GeolocationAccuracy.High,
-                    Timeout = TimeSpan.FromSeconds(10)
-                }, cancellationToken);
-
-                if (location != null && SelectedBus != null && _hubConnection?.State == HubConnectionState.Connected)
-                {
-                    CurrentLatitude = location.Latitude;
-                    CurrentLongitude = location.Longitude;
-                    CurrentSpeed = location.Speed;
-
-                    await _hubConnection.InvokeAsync("SendGpsUpdate",
-                        location.Latitude,
-                        location.Longitude,
-                        location.Speed,
-                        location.Course,
-                        cancellationToken);
-
-                    StatusText = $"Bus {SelectedBus.BusNumber} - Sendt: {DateTime.Now:HH:mm:ss}";
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                break;
+                await _hubConnection.InvokeAsync("SendGpsUpdate",
+                    location.Latitude,
+                    location.Longitude,
+                    location.Speed,
+                    location.Course);
             }
             catch (Exception ex)
             {
-                StatusText = $"Fejl: {ex.Message}";
-            }
-
-            try
-            {
-                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    StatusText = $"Fejl: {ex.Message}";
+                });
             }
         }
+    }
+
+    private void StopLocationListening()
+    {
+        Geolocation.LocationChanged -= OnLocationChanged;
+        Geolocation.StopListeningForeground();
     }
 
     [RelayCommand]

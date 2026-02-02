@@ -1,10 +1,4 @@
 using System.Collections.Concurrent;
-using Microsoft.EntityFrameworkCore;
-using SmartMobility.Configuration;
-using SmartMobility.Data;
-using SmartMobility.DTOs;
-using SmartMobility.Models.Entities;
-using SmartMobility.Services.Interfaces;
 
 namespace SmartMobility.Services;
 
@@ -12,16 +6,24 @@ public class GpsTrackingService : IGpsTrackingService
 {
     private readonly SmartMobilityDbContext _context;
     private readonly IEtaService _etaService;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<GpsTrackingService> _logger;
     private static readonly ConcurrentDictionary<string, DateTime> NotifiedStops = new();
     private static readonly TimeSpan NotificationCooldown = TimeSpan.FromMinutes(Constants.GpsTracking.NotificationCooldownMinutes);
 
     private static readonly ConcurrentDictionary<int, CachedBusInfo> BusCache = new();
     private static readonly TimeSpan CacheExpiry = TimeSpan.FromMinutes(Constants.GpsTracking.CacheExpiryMinutes);
 
-    public GpsTrackingService(SmartMobilityDbContext context, IEtaService etaService)
+    public GpsTrackingService(
+        SmartMobilityDbContext context,
+        IEtaService etaService,
+        IServiceScopeFactory scopeFactory,
+        ILogger<GpsTrackingService> logger)
     {
         _context = context;
         _etaService = etaService;
+        _scopeFactory = scopeFactory;
+        _logger = logger;
     }
 
     public static void InvalidateBusCache(int busId)
@@ -34,25 +36,12 @@ public class GpsTrackingService : IGpsTrackingService
         BusCache.Clear();
     }
 
-    public async Task<GpsProcessingResult?> ProcessGpsUpdateAsync(int busId, GpsUpdateDto update)
+    public async Task<GpsProcessingResult?> CreatePositionUpdateAsync(int busId, GpsUpdateDto update)
     {
         var cachedBus = await GetOrLoadBusAsync(busId);
 
         if (cachedBus == null)
             return null;
-
-        var position = new BusPosition
-        {
-            BusId = busId,
-            Latitude = update.Latitude,
-            Longitude = update.Longitude,
-            Speed = update.Speed,
-            Heading = update.Heading,
-            Timestamp = DateTime.UtcNow
-        };
-
-        _context.BusPositions.Add(position);
-        await _context.SaveChangesAsync();
 
         var positionUpdate = new BusPositionUpdateDto
         {
@@ -60,11 +49,11 @@ public class GpsTrackingService : IGpsTrackingService
             BusNumber = cachedBus.BusNumber,
             RouteId = cachedBus.CurrentRouteId,
             RouteName = cachedBus.RouteName,
-            Latitude = position.Latitude,
-            Longitude = position.Longitude,
-            Speed = position.Speed,
-            Heading = position.Heading,
-            Timestamp = position.Timestamp
+            Latitude = update.Latitude,
+            Longitude = update.Longitude,
+            Speed = update.Speed,
+            Heading = update.Heading,
+            Timestamp = DateTime.UtcNow
         };
 
         var result = new GpsProcessingResult
@@ -82,6 +71,35 @@ public class GpsTrackingService : IGpsTrackingService
         }
 
         return result;
+    }
+
+    public void SavePositionInBackground(int busId, GpsUpdateDto update)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<SmartMobilityDbContext>();
+
+                var position = new BusPosition
+                {
+                    BusId = busId,
+                    Latitude = update.Latitude,
+                    Longitude = update.Longitude,
+                    Speed = update.Speed,
+                    Heading = update.Heading,
+                    Timestamp = DateTime.UtcNow
+                };
+
+                context.BusPositions.Add(position);
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to save GPS position for bus {BusId}", busId);
+            }
+        });
     }
 
     private async Task<CachedBusInfo?> GetOrLoadBusAsync(int busId)

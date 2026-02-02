@@ -1,7 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using SmartMobilityApp.Services.Interfaces;
 
 namespace SmartMobilityApp.Services;
 
@@ -9,13 +8,12 @@ public class ApiService : IApiService
 {
     private readonly HttpClient _httpClient;
     private readonly JsonSerializerOptions _jsonOptions;
-    private const string BaseUrl = "http://10.0.2.2:5174/api/";
 
     public ApiService()
     {
         _httpClient = new HttpClient
         {
-            BaseAddress = new Uri(BaseUrl)
+            BaseAddress = new Uri(Configuration.Constants.Api.BaseUrl)
         };
 
         _jsonOptions = new JsonSerializerOptions

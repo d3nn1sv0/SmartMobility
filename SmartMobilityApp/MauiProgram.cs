@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using SkiaSharp.Views.Maui.Controls.Hosting;
-using SmartMobilityApp.Services.Interfaces;
 
 namespace SmartMobilityApp;
 
