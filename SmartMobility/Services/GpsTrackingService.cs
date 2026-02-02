@@ -9,7 +9,7 @@ public class GpsTrackingService : IGpsTrackingService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<GpsTrackingService> _logger;
     private static readonly ConcurrentDictionary<string, DateTime> NotifiedStops = new();
-    private static readonly TimeSpan NotificationCooldown = TimeSpan.FromMinutes(Constants.GpsTracking.NotificationCooldownMinutes);
+    private static readonly TimeSpan NotificationCooldown = TimeSpan.FromSeconds(Constants.GpsTracking.NotificationCooldownSeconds);
 
     private static readonly ConcurrentDictionary<int, CachedBusInfo> BusCache = new();
     private static readonly TimeSpan CacheExpiry = TimeSpan.FromMinutes(Constants.GpsTracking.CacheExpiryMinutes);

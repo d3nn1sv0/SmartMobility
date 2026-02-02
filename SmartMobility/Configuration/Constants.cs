@@ -12,7 +12,7 @@ public static class Constants
     {
         public const double NotificationDistanceMeters = 100.0;
         public const int CacheExpiryMinutes = 5;
-        public const int NotificationCooldownMinutes = 5;
+        public const int NotificationCooldownSeconds = 30;
         public const int NotificationCleanupMinutes = 30;
     }
 
