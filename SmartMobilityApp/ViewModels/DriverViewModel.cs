@@ -153,6 +153,38 @@ public partial class DriverViewModel : BaseViewModel
                 });
             });
 
+            _hubConnection.Reconnecting += error =>
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    StatusText = "Forbindelse tabt - genopretter...";
+                });
+                return Task.CompletedTask;
+            };
+
+            _hubConnection.Reconnected += async connectionId =>
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    StatusText = "Forbundet - går online igen...";
+                });
+
+                if (SelectedBus != null)
+                {
+                    await _hubConnection.InvokeAsync("GoOnline", SelectedBus.Id);
+                }
+            };
+
+            _hubConnection.Closed += error =>
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    StatusText = "Forbindelse lukket";
+                    IsTracking = false;
+                });
+                return Task.CompletedTask;
+            };
+
             await _hubConnection.StartAsync();
             await _hubConnection.InvokeAsync("GoOnline", SelectedBus.Id);
 
